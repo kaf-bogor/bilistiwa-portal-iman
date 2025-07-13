@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,10 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 interface WaqfAsset {
   id: string;
   name: string;
-  type: "Land" | "Building" | "Equipment";
+  type: "Tanah" | "Bangunan" | "Peralatan";
   location: string;
   value: number;
-  status: "Active" | "Under Development" | "Completed";
+  status: "Aktif" | "Dalam Pengembangan" | "Selesai";
   description: string;
   dateAcquired: string;
 }
@@ -26,22 +25,22 @@ const WaqfAssets = () => {
   const [assets, setAssets] = useState<WaqfAsset[]>([
     {
       id: "1",
-      name: "Main Campus Land",
-      type: "Land",
-      location: "Bogor, West Java",
+      name: "Tanah Kampus Utama",
+      type: "Tanah",
+      location: "Bogor, Jawa Barat",
       value: 2500000000,
-      status: "Active",
-      description: "Primary campus land for Kuttab Al Fatih",
+      status: "Aktif",
+      description: "Tanah kampus utama untuk Kuttab Al Fatih",
       dateAcquired: "2020-01-15"
     },
     {
       id: "2", 
-      name: "School Building Phase 1",
-      type: "Building",
-      location: "Bogor, West Java",
+      name: "Gedung Sekolah Fase 1",
+      type: "Bangunan",
+      location: "Bogor, Jawa Barat",
       value: 1800000000,
-      status: "Completed",
-      description: "First phase of school construction",
+      status: "Selesai",
+      description: "Fase pertama pembangunan sekolah",
       dateAcquired: "2021-06-10"
     }
   ]);
@@ -50,18 +49,18 @@ const WaqfAssets = () => {
   const [editingAsset, setEditingAsset] = useState<WaqfAsset | null>(null);
   const [formData, setFormData] = useState<{
     name: string;
-    type: "Land" | "Building" | "Equipment";
+    type: "Tanah" | "Bangunan" | "Peralatan";
     location: string;
     value: string;
-    status: "Active" | "Under Development" | "Completed";
+    status: "Aktif" | "Dalam Pengembangan" | "Selesai";
     description: string;
     dateAcquired: string;
   }>({
     name: "",
-    type: "Land",
+    type: "Tanah",
     location: "",
     value: "",
-    status: "Active",
+    status: "Aktif",
     description: "",
     dateAcquired: ""
   });
@@ -69,10 +68,10 @@ const WaqfAssets = () => {
   const resetForm = () => {
     setFormData({
       name: "",
-      type: "Land",
+      type: "Tanah",
       location: "",
       value: "",
-      status: "Active",
+      status: "Aktif",
       description: "",
       dateAcquired: ""
     });
@@ -88,7 +87,7 @@ const WaqfAssets = () => {
           ? { ...asset, ...formData, value: Number(formData.value) }
           : asset
       ));
-      toast({ title: "Asset updated successfully" });
+      toast({ title: "Aset berhasil diperbarui" });
     } else {
       const newAsset: WaqfAsset = {
         id: Date.now().toString(),
@@ -96,7 +95,7 @@ const WaqfAssets = () => {
         value: Number(formData.value)
       };
       setAssets([...assets, newAsset]);
-      toast({ title: "Asset created successfully" });
+      toast({ title: "Aset berhasil dibuat" });
     }
     
     setIsDialogOpen(false);
@@ -119,7 +118,7 @@ const WaqfAssets = () => {
 
   const handleDelete = (id: string) => {
     setAssets(assets.filter(asset => asset.id !== id));
-    toast({ title: "Asset deleted successfully" });
+    toast({ title: "Aset berhasil dihapus" });
   };
 
   const formatCurrency = (value: number) => {
@@ -132,42 +131,42 @@ const WaqfAssets = () => {
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Waqf & Assets Management</h1>
-        <p className="text-green-100">Manage waqf properties, land ownership, and asset documentation</p>
+        <h1 className="text-2xl font-bold mb-2">Manajemen Aset & Wakaf</h1>
+        <p className="text-green-100">Kelola properti wakaf, kepemilikan tanah, dan dokumentasi aset</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Assets</CardTitle>
+            <CardTitle className="text-sm">Total Aset</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{assets.length}</div>
-            <p className="text-xs text-green-600">Properties & Equipment</p>
+            <p className="text-xs text-green-600">Properti & Peralatan</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Value</CardTitle>
+            <CardTitle className="text-sm">Total Nilai</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(assets.reduce((sum, asset) => sum + asset.value, 0))}
             </div>
-            <p className="text-xs text-blue-600">Asset valuation</p>
+            <p className="text-xs text-blue-600">Valuasi aset</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-purple-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Active Projects</CardTitle>
+            <CardTitle className="text-sm">Proyek Aktif</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {assets.filter(a => a.status === "Under Development").length}
+              {assets.filter(a => a.status === "Dalam Pengembangan").length}
             </div>
-            <p className="text-xs text-purple-600">In development</p>
+            <p className="text-xs text-purple-600">Dalam pengembangan</p>
           </CardContent>
         </Card>
       </div>
@@ -176,24 +175,24 @@ const WaqfAssets = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            Waqf Assets
+            Aset Wakaf
           </CardTitle>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Asset
+                Tambah Aset
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingAsset ? "Edit Asset" : "Add New Asset"}
+                  {editingAsset ? "Edit Aset" : "Tambah Aset Baru"}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Asset Name</Label>
+                  <Label htmlFor="name">Nama Aset</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -202,21 +201,21 @@ const WaqfAssets = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="type">Type</Label>
+                  <Label htmlFor="type">Jenis</Label>
                   <select
                     id="type"
                     value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: e.target.value as "Land" | "Building" | "Equipment"})}
+                    onChange={(e) => setFormData({...formData, type: e.target.value as "Tanah" | "Bangunan" | "Peralatan"})}
                     className="w-full p-2 border rounded-md"
                     required
                   >
-                    <option value="Land">Land</option>
-                    <option value="Building">Building</option>
-                    <option value="Equipment">Equipment</option>
+                    <option value="Tanah">Tanah</option>
+                    <option value="Bangunan">Bangunan</option>
+                    <option value="Peralatan">Peralatan</option>
                   </select>
                 </div>
                 <div>
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="location">Lokasi</Label>
                   <Input
                     id="location"
                     value={formData.location}
@@ -225,7 +224,7 @@ const WaqfAssets = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="value">Value (IDR)</Label>
+                  <Label htmlFor="value">Nilai (IDR)</Label>
                   <Input
                     id="value"
                     type="number"
@@ -239,17 +238,17 @@ const WaqfAssets = () => {
                   <select
                     id="status"
                     value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value as "Active" | "Under Development" | "Completed"})}
+                    onChange={(e) => setFormData({...formData, status: e.target.value as "Aktif" | "Dalam Pengembangan" | "Selesai"})}
                     className="w-full p-2 border rounded-md"
                     required
                   >
-                    <option value="Active">Active</option>
-                    <option value="Under Development">Under Development</option>
-                    <option value="Completed">Completed</option>
+                    <option value="Aktif">Aktif</option>
+                    <option value="Dalam Pengembangan">Dalam Pengembangan</option>
+                    <option value="Selesai">Selesai</option>
                   </select>
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">Deskripsi</Label>
                   <textarea
                     id="description"
                     value={formData.description}
@@ -259,7 +258,7 @@ const WaqfAssets = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="dateAcquired">Date Acquired</Label>
+                  <Label htmlFor="dateAcquired">Tanggal Diperoleh</Label>
                   <Input
                     id="dateAcquired"
                     type="date"
@@ -270,10 +269,10 @@ const WaqfAssets = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" className="flex-1">
-                    {editingAsset ? "Update" : "Create"} Asset
+                    {editingAsset ? "Perbarui" : "Buat"} Aset
                   </Button>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
+                    Batal
                   </Button>
                 </div>
               </form>
@@ -284,12 +283,12 @@ const WaqfAssets = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Value</TableHead>
+                <TableHead>Nama</TableHead>
+                <TableHead>Jenis</TableHead>
+                <TableHead>Lokasi</TableHead>
+                <TableHead>Nilai</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -301,8 +300,8 @@ const WaqfAssets = () => {
                   <TableCell>{formatCurrency(asset.value)}</TableCell>
                   <TableCell>
                     <Badge variant={
-                      asset.status === "Active" ? "default" :
-                      asset.status === "Completed" ? "secondary" : "outline"
+                      asset.status === "Aktif" ? "default" :
+                      asset.status === "Selesai" ? "secondary" : "outline"
                     }>
                       {asset.status}
                     </Badge>
