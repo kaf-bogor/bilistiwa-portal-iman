@@ -1,64 +1,610 @@
-
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, Gift, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Plus, Edit, Trash2, Eye, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface Event {
+  id: string;
+  eventName: string;
+  eventType: "Academic" | "Religious" | "Community" | "Administrative" | "Fundraising" | "Cultural";
+  description: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  organizer: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  status: "Planned" | "Ongoing" | "Completed" | "Cancelled" | "Postponed";
+  priority: "Low" | "Medium" | "High" | "Critical";
+  budget: number;
+  actualCost: number;
+  requirements: string[];
+  notes: string;
+}
 
 const EventsCalendar = () => {
+  const { toast } = useToast();
+  const [events, setEvents] = useState<Event[]>([
+    {
+      id: "1",
+      eventName: "Monthly Halaqah - Islamic Studies",
+      eventType: "Religious",
+      description: "Monthly Islamic studies circle for teachers and parents",
+      startDate: "2024-02-15",
+      endDate: "2024-02-15",
+      startTime: "19:00",
+      endTime: "21:00",
+      location: "Main Hall, Kuttab Al Fatih",
+      organizer: "Ustadz Ahmad Hidayat",
+      maxParticipants: 50,
+      currentParticipants: 35,
+      status: "Planned",
+      priority: "Medium",
+      budget: 500000,
+      actualCost: 0,
+      requirements: ["Sound System", "Projector", "Refreshments"],
+      notes: "Regular monthly program for community building"
+    },
+    {
+      id: "2",
+      eventName: "Annual Fundraising Dinner",
+      eventType: "Fundraising",
+      description: "Annual fundraising dinner to support school operations",
+      startDate: "2024-03-20",
+      endDate: "2024-03-20",
+      startTime: "18:00",
+      endTime: "22:00",
+      location: "Grand Ballroom, Hotel Bogor",
+      organizer: "Finance Committee",
+      maxParticipants: 200,
+      currentParticipants: 120,
+      status: "Planned",
+      priority: "High",
+      budget: 25000000,
+      actualCost: 0,
+      requirements: ["Venue", "Catering", "Entertainment", "Auction Items"],
+      notes: "Major fundraising event for the year"
+    }
+  ]);
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [formData, setFormData] = useState<{
+    eventName: string;
+    eventType: "Academic" | "Religious" | "Community" | "Administrative" | "Fundraising" | "Cultural";
+    description: string;
+    startDate: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    organizer: string;
+    maxParticipants: string;
+    currentParticipants: string;
+    status: "Planned" | "Ongoing" | "Completed" | "Cancelled" | "Postponed";
+    priority: "Low" | "Medium" | "High" | "Critical";
+    budget: string;
+    actualCost: string;
+    requirements: string;
+    notes: string;
+  }>({
+    eventName: "",
+    eventType: "Community",
+    description: "",
+    startDate: "",
+    endDate: "",
+    startTime: "",
+    endTime: "",
+    location: "",
+    organizer: "",
+    maxParticipants: "",
+    currentParticipants: "0",
+    status: "Planned",
+    priority: "Medium",
+    budget: "",
+    actualCost: "0",
+    requirements: "",
+    notes: ""
+  });
+
+  const resetForm = () => {
+    setFormData({
+      eventName: "",
+      eventType: "Community",
+      description: "",
+      startDate: "",
+      endDate: "",
+      startTime: "",
+      endTime: "",
+      location: "",
+      organizer: "",
+      maxParticipants: "",
+      currentParticipants: "0",
+      status: "Planned",
+      priority: "Medium",
+      budget: "",
+      actualCost: "0",
+      requirements: "",
+      notes: ""
+    });
+    setEditingEvent(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const requirementsArray = formData.requirements.split(',').map(r => r.trim()).filter(r => r);
+    
+    if (editingEvent) {
+      setEvents(events.map(event => 
+        event.id === editingEvent.id 
+          ? { 
+              ...event, 
+              ...formData, 
+              maxParticipants: Number(formData.maxParticipants),
+              currentParticipants: Number(formData.currentParticipants),
+              budget: Number(formData.budget),
+              actualCost: Number(formData.actualCost),
+              requirements: requirementsArray
+            }
+          : event
+      ));
+      toast({ title: "Acara berhasil diperbarui" });
+    } else {
+      const newEvent: Event = {
+        id: Date.now().toString(),
+        ...formData,
+        maxParticipants: Number(formData.maxParticipants),
+        currentParticipants: Number(formData.currentParticipants),
+        budget: Number(formData.budget),
+        actualCost: Number(formData.actualCost),
+        requirements: requirementsArray
+      };
+      setEvents([...events, newEvent]);
+      toast({ title: "Acara berhasil dibuat" });
+    }
+    
+    setIsDialogOpen(false);
+    resetForm();
+  };
+
+  const handleEdit = (event: Event) => {
+    setEditingEvent(event);
+    setFormData({
+      eventName: event.eventName,
+      eventType: event.eventType,
+      description: event.description,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      location: event.location,
+      organizer: event.organizer,
+      maxParticipants: event.maxParticipants.toString(),
+      currentParticipants: event.currentParticipants.toString(),
+      status: event.status,
+      priority: event.priority,
+      budget: event.budget.toString(),
+      actualCost: event.actualCost.toString(),
+      requirements: event.requirements.join(', '),
+      notes: event.notes
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setEvents(events.filter(event => event.id !== id));
+    toast({ title: "Acara berhasil dihapus" });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR'
+    }).format(value);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Planned": return "outline";
+      case "Ongoing": return "default";
+      case "Completed": return "secondary";
+      case "Cancelled": return "destructive";
+      case "Postponed": return "outline";
+      default: return "outline";
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "Low": return "secondary";
+      case "Medium": return "outline";
+      case "High": return "default";
+      case "Critical": return "destructive";
+      default: return "outline";
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "Academic": return "default";
+      case "Religious": return "secondary";
+      case "Community": return "outline";
+      case "Administrative": return "outline";
+      case "Fundraising": return "default";
+      case "Cultural": return "secondary";
+      default: return "outline";
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const upcomingEvents = events.filter(e => new Date(e.startDate) >= new Date() && e.status !== "Cancelled").length;
+  const totalBudget = events.reduce((sum, e) => sum + e.budget, 0);
+  const totalParticipants = events.reduce((sum, e) => sum + e.currentParticipants, 0);
+
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Events & Calendar</h1>
-        <p className="text-teal-100">Fundraisers, qurban drives, bazaars, and institutional events</p>
+      <div className="bg-gradient-to-r from-orange-600 to-orange-700 rounded-lg p-6 text-white">
+        <h1 className="text-2xl font-bold mb-2">Acara & Kalender</h1>
+        <p className="text-orange-100">Kelola acara institusi, kegiatan, dan program komunitas</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gift className="h-5 w-5 text-red-600" />
-              Upcoming: Qurban 2024
-            </CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-l-4 border-l-orange-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Acara</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-2">June 15-17, 2024</p>
-            <p className="text-lg font-bold text-green-600">127 participants</p>
-            <p className="text-xs text-gray-500">Registration open</p>
+            <div className="text-2xl font-bold">{events.length}</div>
+            <p className="text-xs text-orange-600">Semua acara</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              Monthly Bazaar
-            </CardTitle>
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Acara Mendatang</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-2">Every last Saturday</p>
-            <p className="text-lg font-bold text-blue-600">45 vendors</p>
-            <p className="text-xs text-gray-500">Next: Dec 30, 2024</p>
+            <div className="text-2xl font-bold">{upcomingEvents}</div>
+            <p className="text-xs text-green-600">Terjadwal ke depan</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-purple-600" />
-              Fundraising Event
-            </CardTitle>
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Anggaran</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-2">January 20, 2025</p>
-            <p className="text-lg font-bold text-purple-600">Planning</p>
-            <p className="text-xs text-gray-500">Target: Rp 100M</p>
+            <div className="text-2xl font-bold">{formatCurrency(totalBudget)}</div>
+            <p className="text-xs text-blue-600">Anggaran acara</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Peserta</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalParticipants}</div>
+            <p className="text-xs text-purple-600">Total terdaftar</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardContent className="p-12 text-center">
-          <Calendar className="h-16 w-16 text-teal-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold mb-2">Event Management System</h3>
-          <p className="text-gray-600">Comprehensive event planning and calendar management coming soon...</p>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Jadwal Acara
+          </CardTitle>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Acara
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingEvent ? "Edit Acara" : "Buat Acara Baru"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="eventName">Nama Acara</Label>
+                  <Input
+                    id="eventName"
+                    value={formData.eventName}
+                    onChange={(e) => setFormData({...formData, eventName: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="eventType">Jenis Acara</Label>
+                  <select
+                    id="eventType"
+                    value={formData.eventType}
+                    onChange={(e) => setFormData({...formData, eventType: e.target.value as "Academic" | "Religious" | "Community" | "Administrative" | "Fundraising" | "Cultural"})}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="Community">Komunitas</option>
+                    <option value="Academic">Akademik</option>
+                    <option value="Religious">Keagamaan</option>
+                    <option value="Administrative">Administratif</option>
+                    <option value="Fundraising">Penggalangan Dana</option>
+                    <option value="Cultural">Budaya</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="description">Deskripsi</Label>
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                    rows={2}
+                    placeholder="Deskripsi singkat acara"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="startDate">Tanggal Mulai</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="endDate">Tanggal Berakhir</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="startTime">Waktu Mulai</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="endTime">Waktu Berakhir</Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="location">Lokasi</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="organizer">Penyelenggara</Label>
+                  <Input
+                    id="organizer"
+                    value={formData.organizer}
+                    onChange={(e) => setFormData({...formData, organizer: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="maxParticipants">Maks Peserta</Label>
+                    <Input
+                      id="maxParticipants"
+                      type="number"
+                      value={formData.maxParticipants}
+                      onChange={(e) => setFormData({...formData, maxParticipants: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="currentParticipants">Peserta Saat Ini</Label>
+                    <Input
+                      id="currentParticipants"
+                      type="number"
+                      value={formData.currentParticipants}
+                      onChange={(e) => setFormData({...formData, currentParticipants: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="status">Status</Label>
+                    <select
+                      id="status"
+                      value={formData.status}
+                      onChange={(e) => setFormData({...formData, status: e.target.value as "Planned" | "Ongoing" | "Completed" | "Cancelled" | "Postponed"})}
+                      className="w-full p-2 border rounded-md"
+                      required
+                    >
+                      <option value="Planned">Direncanakan</option>
+                      <option value="Ongoing">Berlangsung</option>
+                      <option value="Completed">Selesai</option>
+                      <option value="Postponed">Ditunda</option>
+                      <option value="Cancelled">Dibatalkan</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="priority">Prioritas</Label>
+                    <select
+                      id="priority"
+                      value={formData.priority}
+                      onChange={(e) => setFormData({...formData, priority: e.target.value as "Low" | "Medium" | "High" | "Critical"})}
+                      className="w-full p-2 border rounded-md"
+                      required
+                    >
+                      <option value="Medium">Sedang</option>
+                      <option value="Low">Rendah</option>
+                      <option value="High">Tinggi</option>
+                      <option value="Critical">Kritis</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="budget">Anggaran (IDR)</Label>
+                    <Input
+                      id="budget"
+                      type="number"
+                      value={formData.budget}
+                      onChange={(e) => setFormData({...formData, budget: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="actualCost">Biaya Aktual (IDR)</Label>
+                    <Input
+                      id="actualCost"
+                      type="number"
+                      value={formData.actualCost}
+                      onChange={(e) => setFormData({...formData, actualCost: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="requirements">Kebutuhan (pisahkan dengan koma)</Label>
+                  <Input
+                    id="requirements"
+                    value={formData.requirements}
+                    onChange={(e) => setFormData({...formData, requirements: e.target.value})}
+                    placeholder="Sound System, Proyektor, Penyegaran"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="notes">Catatan</Label>
+                  <textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                    rows={2}
+                    placeholder="Catatan tambahan tentang acara"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    {editingEvent ? "Perbarui" : "Buat"} Acara
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Batal
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama Acara</TableHead>
+                <TableHead>Jenis</TableHead>
+                <TableHead>Tanggal & Waktu</TableHead>
+                <TableHead>Peserta</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Prioritas</TableHead>
+                <TableHead>Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {events.map((event) => (
+                <TableRow key={event.id}>
+                  <TableCell className="font-medium">
+                    <div>
+                      <div>{event.eventName}</div>
+                      <div className="text-xs text-gray-500">{event.location}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getTypeColor(event.eventType)}>
+                      {event.eventType}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div>{formatDate(event.startDate)}</div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {event.startTime} - {event.endTime}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {event.currentParticipants}/{event.maxParticipants}
+                      <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                        <div 
+                          className="bg-blue-600 h-1 rounded-full" 
+                          style={{ width: `${(event.currentParticipants / event.maxParticipants) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusColor(event.status)}>
+                      {event.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getPriorityColor(event.priority)}>
+                      {event.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(event)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(event.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

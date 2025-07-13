@@ -1,229 +1,388 @@
-
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Users, DollarSign, Target, Eye, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { GraduationCap, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface Scholarship {
+  id: string;
+  studentName: string;
+  program: "Elementary" | "Middle School" | "High School" | "University";
+  amount: number;
+  status: "Active" | "Pending" | "Completed" | "Suspended";
+  startDate: string;
+  endDate: string;
+  sponsor: string;
+  gpa: number;
+  description: string;
+}
 
 const ScholarshipManagement = () => {
-  const scholarshipStats = [
-    { label: "Active Students", value: "127", change: "+5 this month" },
-    { label: "Monthly Distribution", value: "Rp 38.1M", change: "127 students" },
-    { label: "SPP Subsidy Target", value: "85%", change: "108/127 covered" },
-    { label: "Waiting List", value: "24", change: "Applications pending" }
-  ];
-
-  const students = [
+  const { toast } = useToast();
+  const [scholarships, setScholarships] = useState<Scholarship[]>([
     {
-      name: "Ahmad Fauzi Rahman",
-      class: "Grade 4A",
-      type: "Full Scholarship",
-      amount: "Rp 300,000",
+      id: "1",
+      studentName: "Ahmad Fauzi",
+      program: "University",
+      amount: 5000000,
       status: "Active",
-      lastPayment: "Dec 2024"
+      startDate: "2024-01-15",
+      endDate: "2024-12-15",
+      sponsor: "Yayasan Bilistiwa",
+      gpa: 3.8,
+      description: "Computer Science student at IPB University"
     },
     {
-      name: "Siti Aisyah Nur",
-      class: "Grade 5B",
-      type: "SPP Subsidy",
-      amount: "Rp 150,000",
+      id: "2",
+      studentName: "Siti Nurhaliza",
+      program: "High School",
+      amount: 2500000,
       status: "Active",
-      lastPayment: "Dec 2024"
-    },
-    {
-      name: "Muhammad Hakim",
-      class: "Grade 3A",
-      type: "Full Scholarship",
-      amount: "Rp 300,000",
-      status: "Active",
-      lastPayment: "Dec 2024"
-    },
-    {
-      name: "Fatimah Az-Zahra",
-      class: "Grade 6A",
-      type: "Partial Support",
-      amount: "Rp 200,000",
-      status: "Active",
-      lastPayment: "Dec 2024"
-    },
-    {
-      name: "Umar bin Khattab",
-      class: "Grade 2B",
-      type: "SPP Subsidy",
-      amount: "Rp 150,000",
-      status: "Review",
-      lastPayment: "Nov 2024"
+      startDate: "2024-02-01",
+      endDate: "2025-01-31",
+      sponsor: "Individual Donor",
+      gpa: 3.9,
+      description: "Outstanding student in Islamic studies"
     }
-  ];
+  ]);
 
-  const distributionProgress = [
-    { month: "January 2024", target: 120, achieved: 115, percentage: 96 },
-    { month: "February 2024", target: 120, achieved: 118, percentage: 98 },
-    { month: "March 2024", target: 125, achieved: 122, percentage: 98 },
-    { month: "April 2024", target: 125, achieved: 125, percentage: 100 },
-    { month: "May 2024", target: 125, achieved: 123, percentage: 98 },
-    { month: "December 2024", target: 130, achieved: 127, percentage: 98 }
-  ];
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingScholarship, setEditingScholarship] = useState<Scholarship | null>(null);
+  const [formData, setFormData] = useState<{
+    studentName: string;
+    program: "Elementary" | "Middle School" | "High School" | "University";
+    amount: string;
+    status: "Active" | "Pending" | "Completed" | "Suspended";
+    startDate: string;
+    endDate: string;
+    sponsor: string;
+    gpa: string;
+    description: string;
+  }>({
+    studentName: "",
+    program: "Elementary",
+    amount: "",
+    status: "Pending",
+    startDate: "",
+    endDate: "",
+    sponsor: "",
+    gpa: "",
+    description: ""
+  });
+
+  const resetForm = () => {
+    setFormData({
+      studentName: "",
+      program: "Elementary",
+      amount: "",
+      status: "Pending",
+      startDate: "",
+      endDate: "",
+      sponsor: "",
+      gpa: "",
+      description: ""
+    });
+    setEditingScholarship(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingScholarship) {
+      setScholarships(scholarships.map(scholarship => 
+        scholarship.id === editingScholarship.id 
+          ? { ...scholarship, ...formData, amount: Number(formData.amount), gpa: Number(formData.gpa) }
+          : scholarship
+      ));
+      toast({ title: "Beasiswa berhasil diperbarui" });
+    } else {
+      const newScholarship: Scholarship = {
+        id: Date.now().toString(),
+        ...formData,
+        amount: Number(formData.amount),
+        gpa: Number(formData.gpa)
+      };
+      setScholarships([...scholarships, newScholarship]);
+      toast({ title: "Beasiswa berhasil dibuat" });
+    }
+    
+    setIsDialogOpen(false);
+    resetForm();
+  };
+
+  const handleEdit = (scholarship: Scholarship) => {
+    setEditingScholarship(scholarship);
+    setFormData({
+      studentName: scholarship.studentName,
+      program: scholarship.program,
+      amount: scholarship.amount.toString(),
+      status: scholarship.status,
+      startDate: scholarship.startDate,
+      endDate: scholarship.endDate,
+      sponsor: scholarship.sponsor,
+      gpa: scholarship.gpa.toString(),
+      description: scholarship.description
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setScholarships(scholarships.filter(scholarship => scholarship.id !== id));
+    toast({ title: "Beasiswa berhasil dihapus" });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR'
+    }).format(value);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Active": return "default";
+      case "Pending": return "outline";
+      case "Completed": return "secondary";
+      case "Suspended": return "destructive";
+      default: return "outline";
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Scholarship Management</h1>
-        <p className="text-blue-100">Student scholarship distribution and SPP subsidy management</p>
+        <h1 className="text-2xl font-bold mb-2">Manajemen Beasiswa</h1>
+        <p className="text-blue-100">Kelola beasiswa siswa, pendanaan, dan program dukungan akademik</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {scholarshipStats.map((stat, index) => (
-          <Card key={index} className="border-l-4 border-l-blue-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
-              <p className="text-xs text-blue-600 font-medium">{stat.change}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Beasiswa</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{scholarships.length}</div>
+            <p className="text-xs text-blue-600">Program aktif</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Siswa Aktif</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {scholarships.filter(s => s.status === "Active").length}
+            </div>
+            <p className="text-xs text-green-600">Sedang didanai</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Pendanaan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(scholarships.reduce((sum, s) => sum + s.amount, 0))}
+            </div>
+            <p className="text-xs text-purple-600">Anggaran tahunan</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Rata-rata IPK</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {scholarships.length > 0 ? (scholarships.reduce((sum, s) => sum + s.gpa, 0) / scholarships.length).toFixed(2) : "0.00"}
+            </div>
+            <p className="text-xs text-orange-600">Prestasi akademik</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Distribution Progress */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-green-600" />
-            Monthly Distribution Progress
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {distributionProgress.map((month, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">{month.month}</span>
-                  <span className="text-sm text-gray-600">
-                    {month.achieved} / {month.target} students
-                  </span>
-                </div>
-                <Progress value={month.percentage} className="h-2" />
-                <div className="text-right">
-                  <span className={`text-xs font-medium ${
-                    month.percentage >= 95 ? 'text-green-600' : 'text-orange-600'
-                  }`}>
-                    {month.percentage}% target achieved
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Student List */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-600" />
-            Current Scholarship Recipients
+            <GraduationCap className="h-5 w-5" />
+            Penerima Beasiswa
           </CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export List
-            </Button>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-              Add Student
-            </Button>
-          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Beasiswa
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingScholarship ? "Edit Beasiswa" : "Tambah Beasiswa Baru"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="studentName">Nama Siswa</Label>
+                  <Input
+                    id="studentName"
+                    value={formData.studentName}
+                    onChange={(e) => setFormData({...formData, studentName: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="program">Tingkat Program</Label>
+                  <select
+                    id="program"
+                    value={formData.program}
+                    onChange={(e) => setFormData({...formData, program: e.target.value as "Elementary" | "Middle School" | "High School" | "University"})}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="Elementary">SD</option>
+                    <option value="Middle School">SMP</option>
+                    <option value="High School">SMA</option>
+                    <option value="University">Universitas</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="amount">Jumlah Beasiswa (IDR)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <select
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value as "Active" | "Pending" | "Completed" | "Suspended"})}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="Pending">Menunggu</option>
+                    <option value="Active">Aktif</option>
+                    <option value="Completed">Selesai</option>
+                    <option value="Suspended">Ditangguhkan</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="startDate">Tanggal Mulai</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="endDate">Tanggal Berakhir</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="sponsor">Sponsor</Label>
+                  <Input
+                    id="sponsor"
+                    value={formData.sponsor}
+                    onChange={(e) => setFormData({...formData, sponsor: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gpa">IPK</Label>
+                  <Input
+                    id="gpa"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="4"
+                    value={formData.gpa}
+                    onChange={(e) => setFormData({...formData, gpa: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Deskripsi</Label>
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    {editingScholarship ? "Perbarui" : "Buat"} Beasiswa
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Batal
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium text-gray-600">Student Name</th>
-                  <th className="text-left p-3 font-medium text-gray-600">Class</th>
-                  <th className="text-left p-3 font-medium text-gray-600">Scholarship Type</th>
-                  <th className="text-left p-3 font-medium text-gray-600">Monthly Amount</th>
-                  <th className="text-left p-3 font-medium text-gray-600">Status</th>
-                  <th className="text-left p-3 font-medium text-gray-600">Last Payment</th>
-                  <th className="text-left p-3 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((student, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="p-3">
-                      <div className="font-medium">{student.name}</div>
-                    </td>
-                    <td className="p-3 text-gray-600">{student.class}</td>
-                    <td className="p-3">
-                      <Badge 
-                        variant="outline"
-                        className={
-                          student.type === 'Full Scholarship' ? 'bg-green-100 text-green-800 border-green-300' :
-                          student.type === 'SPP Subsidy' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                          'bg-orange-100 text-orange-800 border-orange-300'
-                        }
-                      >
-                        {student.type}
-                      </Badge>
-                    </td>
-                    <td className="p-3 font-medium text-green-600">{student.amount}</td>
-                    <td className="p-3">
-                      <Badge 
-                        variant={student.status === 'Active' ? 'default' : 'secondary'}
-                        className={
-                          student.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }
-                      >
-                        {student.status}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-gray-600">{student.lastPayment}</td>
-                    <td className="p-3">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama Siswa</TableHead>
+                <TableHead>Program</TableHead>
+                <TableHead>Jumlah</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>IPK</TableHead>
+                <TableHead>Sponsor</TableHead>
+                <TableHead>Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {scholarships.map((scholarship) => (
+                <TableRow key={scholarship.id}>
+                  <TableCell className="font-medium">{scholarship.studentName}</TableCell>
+                  <TableCell>{scholarship.program}</TableCell>
+                  <TableCell>{formatCurrency(scholarship.amount)}</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusColor(scholarship.status)}>
+                      {scholarship.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{scholarship.gpa}</TableCell>
+                  <TableCell>{scholarship.sponsor}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(scholarship)}>
+                        <Edit className="h-4 w-4" />
                       </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(scholarship.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardContent className="p-6 text-center">
-            <GraduationCap className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-            <h3 className="font-semibold mb-2">Process Monthly Distribution</h3>
-            <p className="text-sm text-gray-600 mb-4">Distribute scholarship payments for active students</p>
-            <Button className="w-full bg-blue-600 hover:bg-blue-700">Process Now</Button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardContent className="p-6 text-center">
-            <DollarSign className="h-12 w-12 text-green-600 mx-auto mb-3" />
-            <h3 className="font-semibold mb-2">Review Applications</h3>
-            <p className="text-sm text-gray-600 mb-4">24 new scholarship applications pending review</p>
-            <Button variant="outline" className="w-full">Review Applications</Button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardContent className="p-6 text-center">
-            <Target className="h-12 w-12 text-purple-600 mx-auto mb-3" />
-            <h3 className="font-semibold mb-2">Generate Reports</h3>
-            <p className="text-sm text-gray-600 mb-4">Monthly and annual scholarship distribution reports</p>
-            <Button variant="outline" className="w-full">Generate Reports</Button>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };

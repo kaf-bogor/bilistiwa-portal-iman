@@ -1,208 +1,442 @@
-
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Heart, TrendingUp, Users, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Heart, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface Donation {
+  id: string;
+  donorName: string;
+  donorEmail: string;
+  donorPhone: string;
+  amount: number;
+  category: "Emergency Aid" | "Medical Support" | "Education" | "Food Distribution" | "General";
+  status: "Pending" | "Confirmed" | "Distributed" | "Completed";
+  donationDate: string;
+  purpose: string;
+  isAnonymous: boolean;
+  paymentMethod: "Bank Transfer" | "Cash" | "Online Payment" | "Check";
+  notes: string;
+}
 
 const TaawunDonations = () => {
-  const donationStats = [
-    { label: "Total This Month", value: "Rp 45.7M", change: "+12.5% vs last month" },
-    { label: "Active Donors", value: "248", change: "+15 new donors" },
-    { label: "Monthly Target", value: "78%", change: "Rp 45.7M / Rp 58M" },
-    { label: "Usage Rate", value: "92%", change: "Rp 42.1M distributed" }
-  ];
+  const { toast } = useToast();
+  const [donations, setDonations] = useState<Donation[]>([
+    {
+      id: "1",
+      donorName: "Hamba Allah",
+      donorEmail: "anonymous@example.com",
+      donorPhone: "-",
+      amount: 1000000,
+      category: "Emergency Aid",
+      status: "Completed",
+      donationDate: "2024-01-15",
+      purpose: "Help for flood victims in Bogor",
+      isAnonymous: true,
+      paymentMethod: "Bank Transfer",
+      notes: "May Allah accept this donation"
+    },
+    {
+      id: "2",
+      donorName: "Ahmad Wijaya",
+      donorEmail: "ahmad.wijaya@email.com",
+      donorPhone: "081234567890",
+      amount: 500000,
+      category: "Medical Support",
+      status: "Confirmed",
+      donationDate: "2024-02-01",
+      purpose: "Medical treatment for underprivileged children",
+      isAnonymous: false,
+      paymentMethod: "Online Payment",
+      notes: "Regular monthly donation"
+    }
+  ]);
 
-  const monthlyProgress = [
-    { month: "Aug 2024", target: 50000000, achieved: 48500000, percentage: 97 },
-    { month: "Sep 2024", target: 55000000, achieved: 52300000, percentage: 95 },
-    { month: "Oct 2024", target: 55000000, achieved: 53100000, percentage: 97 },
-    { month: "Nov 2024", target: 58000000, achieved: 56200000, percentage: 97 },
-    { month: "Dec 2024", target: 58000000, achieved: 45750000, percentage: 78 }
-  ];
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingDonation, setEditingDonation] = useState<Donation | null>(null);
+  const [formData, setFormData] = useState<{
+    donorName: string;
+    donorEmail: string;
+    donorPhone: string;
+    amount: string;
+    category: "Emergency Aid" | "Medical Support" | "Education" | "Food Distribution" | "General";
+    status: "Pending" | "Confirmed" | "Distributed" | "Completed";
+    donationDate: string;
+    purpose: string;
+    isAnonymous: boolean;
+    paymentMethod: "Bank Transfer" | "Cash" | "Online Payment" | "Check";
+    notes: string;
+  }>({
+    donorName: "",
+    donorEmail: "",
+    donorPhone: "",
+    amount: "",
+    category: "General",
+    status: "Pending",
+    donationDate: "",
+    purpose: "",
+    isAnonymous: false,
+    paymentMethod: "Bank Transfer",
+    notes: ""
+  });
 
-  const usageBreakdown = [
-    { category: "Student Scholarships", amount: 18500000, percentage: 44 },
-    { category: "Teacher Support", amount: 12300000, percentage: 29 },
-    { category: "Infrastructure", amount: 6200000, percentage: 15 },
-    { category: "Operations", amount: 3800000, percentage: 9 },
-    { category: "Emergency Fund", amount: 1300000, percentage: 3 }
-  ];
+  const resetForm = () => {
+    setFormData({
+      donorName: "",
+      donorEmail: "",
+      donorPhone: "",
+      amount: "",
+      category: "General",
+      status: "Pending",
+      donationDate: "",
+      purpose: "",
+      isAnonymous: false,
+      paymentMethod: "Bank Transfer",
+      notes: ""
+    });
+    setEditingDonation(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingDonation) {
+      setDonations(donations.map(donation => 
+        donation.id === editingDonation.id 
+          ? { ...donation, ...formData, amount: Number(formData.amount) }
+          : donation
+      ));
+      toast({ title: "Donasi berhasil diperbarui" });
+    } else {
+      const newDonation: Donation = {
+        id: Date.now().toString(),
+        ...formData,
+        amount: Number(formData.amount)
+      };
+      setDonations([...donations, newDonation]);
+      toast({ title: "Donasi berhasil dicatat" });
+    }
+    
+    setIsDialogOpen(false);
+    resetForm();
+  };
+
+  const handleEdit = (donation: Donation) => {
+    setEditingDonation(donation);
+    setFormData({
+      donorName: donation.donorName,
+      donorEmail: donation.donorEmail,
+      donorPhone: donation.donorPhone,
+      amount: donation.amount.toString(),
+      category: donation.category,
+      status: donation.status,
+      donationDate: donation.donationDate,
+      purpose: donation.purpose,
+      isAnonymous: donation.isAnonymous,
+      paymentMethod: donation.paymentMethod,
+      notes: donation.notes
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setDonations(donations.filter(donation => donation.id !== id));
+    toast({ title: "Catatan donasi berhasil dihapus" });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR'
+    }).format(value);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Pending": return "outline";
+      case "Confirmed": return "default";
+      case "Distributed": return "secondary";
+      case "Completed": return "default";
+      default: return "outline";
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "Emergency Aid": return "destructive";
+      case "Medical Support": return "default";
+      case "Education": return "secondary";
+      case "Food Distribution": return "outline";
+      case "General": return "outline";
+      default: return "outline";
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-rose-600 to-pink-600 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Ta'awun Donations</h1>
-        <p className="text-rose-100">Community support and mutual aid fund management</p>
-        <div className="mt-4 text-center">
-          <div className="text-pink-200 text-lg">وَتَعَاوَنُوا عَلَى الْبِرِّ وَالتَّقْوَى</div>
-          <p className="text-rose-200 text-sm">And cooperate in righteousness and piety</p>
-        </div>
+      <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-lg p-6 text-white">
+        <h1 className="text-2xl font-bold mb-2">Donasi Ta'awun</h1>
+        <p className="text-red-100">Manajemen donasi gotong royong dan dukungan masyarakat</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {donationStats.map((stat, index) => (
-          <Card key={index} className="border-l-4 border-l-rose-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
-              <p className="text-xs text-rose-600 font-medium">{stat.change}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Monthly Progress and Usage */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              Monthly Fundraising Progress
-            </CardTitle>
+        <Card className="border-l-4 border-l-red-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Donasi</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {monthlyProgress.map((month, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{month.month}</span>
-                    <span className="text-sm text-gray-600">
-                      Rp {(month.achieved / 1000000).toFixed(1)}M / Rp {(month.target / 1000000)}M
-                    </span>
-                  </div>
-                  <Progress value={month.percentage} className="h-2" />
-                  <div className="text-right">
-                    <span className={`text-xs font-medium ${
-                      month.percentage >= 95 ? 'text-green-600' : month.percentage >= 80 ? 'text-orange-600' : 'text-red-600'
-                    }`}>
-                      {month.percentage}% of target
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="text-2xl font-bold">{donations.length}</div>
+            <p className="text-xs text-red-600">Donasi tercatat</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-blue-600" />
-              Fund Usage Breakdown
-            </CardTitle>
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Jumlah</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {usageBreakdown.map((usage, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{usage.category}</span>
-                    <span className="text-sm text-gray-600">
-                      Rp {(usage.amount / 1000000).toFixed(1)}M ({usage.percentage}%)
-                    </span>
-                  </div>
-                  <Progress value={usage.percentage} className="h-2" />
-                </div>
-              ))}
+            <div className="text-2xl font-bold">
+              {formatCurrency(donations.reduce((sum, d) => sum + d.amount, 0))}
             </div>
+            <p className="text-xs text-green-600">Total terkumpul</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Selesai</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {donations.filter(d => d.status === "Completed").length}
+            </div>
+            <p className="text-xs text-blue-600">Bantuan tersalurkan</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Anonim</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {donations.filter(d => d.isAnonymous).length}
+            </div>
+            <p className="text-xs text-purple-600">Donatur anonim</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Donations */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-rose-600" />
-            Recent Donations
+            <Heart className="h-5 w-5" />
+            Catatan Donasi
           </CardTitle>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Catat Donasi
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingDonation ? "Edit Donasi" : "Catat Donasi Baru"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="donorName">Nama Donatur</Label>
+                  <Input
+                    id="donorName"
+                    value={formData.donorName}
+                    onChange={(e) => setFormData({...formData, donorName: e.target.value})}
+                    placeholder="Masukkan 'Hamba Allah' untuk anonim"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="donorEmail">Email</Label>
+                  <Input
+                    id="donorEmail"
+                    type="email"
+                    value={formData.donorEmail}
+                    onChange={(e) => setFormData({...formData, donorEmail: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="donorPhone">Nomor Telepon</Label>
+                  <Input
+                    id="donorPhone"
+                    value={formData.donorPhone}
+                    onChange={(e) => setFormData({...formData, donorPhone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="amount">Jumlah Donasi (IDR)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Kategori</Label>
+                  <select
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value as "Emergency Aid" | "Medical Support" | "Education" | "Food Distribution" | "General"})}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="General">Umum</option>
+                    <option value="Emergency Aid">Bantuan Darurat</option>
+                    <option value="Medical Support">Dukungan Medis</option>
+                    <option value="Education">Pendidikan</option>
+                    <option value="Food Distribution">Distribusi Makanan</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <select
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value as "Pending" | "Confirmed" | "Distributed" | "Completed"})}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="Pending">Menunggu</option>
+                    <option value="Confirmed">Dikonfirmasi</option>
+                    <option value="Distributed">Disalurkan</option>
+                    <option value="Completed">Selesai</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="donationDate">Tanggal Donasi</Label>
+                  <Input
+                    id="donationDate"
+                    type="date"
+                    value={formData.donationDate}
+                    onChange={(e) => setFormData({...formData, donationDate: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="purpose">Tujuan</Label>
+                  <textarea
+                    id="purpose"
+                    value={formData.purpose}
+                    onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                    rows={2}
+                    placeholder="Untuk apa donasi ini?"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="paymentMethod">Metode Pembayaran</Label>
+                  <select
+                    id="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={(e) => setFormData({...formData, paymentMethod: e.target.value as "Bank Transfer" | "Cash" | "Online Payment" | "Check"})}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="Bank Transfer">Transfer Bank</option>
+                    <option value="Cash">Tunai</option>
+                    <option value="Online Payment">Pembayaran Online</option>
+                    <option value="Check">Cek</option>
+                  </select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isAnonymous"
+                    checked={formData.isAnonymous}
+                    onChange={(e) => setFormData({...formData, isAnonymous: e.target.checked})}
+                    className="rounded"
+                  />
+                  <Label htmlFor="isAnonymous">Donasi Anonim</Label>
+                </div>
+                <div>
+                  <Label htmlFor="notes">Catatan</Label>
+                  <textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                    rows={2}
+                    placeholder="Catatan atau pesan tambahan"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    {editingDonation ? "Perbarui" : "Catat"} Donasi
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Batal
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="border-l-4 border-l-green-500 pl-4 py-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">Anonymous Donor</p>
-                  <p className="text-sm text-gray-600">Monthly recurring donation</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-green-600">Rp 2,500,000</p>
-                  <p className="text-xs text-gray-500">2 hours ago</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-l-4 border-l-blue-500 pl-4 py-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">H. Abdullah Rahman</p>
-                  <p className="text-sm text-gray-600">Education support fund</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-blue-600">Rp 1,500,000</p>
-                  <p className="text-xs text-gray-500">5 hours ago</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-l-4 border-l-purple-500 pl-4 py-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">Komunitas Muslimah Bogor</p>
-                  <p className="text-sm text-gray-600">Collective donation</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-purple-600">Rp 3,200,000</p>
-                  <p className="text-xs text-gray-500">1 day ago</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-l-4 border-l-orange-500 pl-4 py-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">CV Barokah Sejahtera</p>
-                  <p className="text-sm text-gray-600">Corporate social responsibility</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-orange-600">Rp 5,000,000</p>
-                  <p className="text-xs text-gray-500">2 days ago</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Donatur</TableHead>
+                <TableHead>Jumlah</TableHead>
+                <TableHead>Kategori</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Tanggal</TableHead>
+                <TableHead>Pembayaran</TableHead>
+                <TableHead>Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {donations.map((donation) => (
+                <TableRow key={donation.id}>
+                  <TableCell className="font-medium">
+                    {donation.isAnonymous ? "Hamba Allah" : donation.donorName}
+                  </TableCell>
+                  <TableCell>{formatCurrency(donation.amount)}</TableCell>
+                  <TableCell>
+                    <Badge variant={getCategoryColor(donation.category)}>
+                      {donation.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusColor(donation.status)}>
+                      {donation.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{new Date(donation.donationDate).toLocaleDateString('id-ID')}</TableCell>
+                  <TableCell>{donation.paymentMethod}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(donation)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(donation.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-rose-50 to-pink-50">
-          <CardContent className="p-6 text-center">
-            <Heart className="h-12 w-12 text-rose-600 mx-auto mb-3" />
-            <h3 className="font-semibold mb-2">Record New Donation</h3>
-            <p className="text-sm text-gray-600">Add new donation entry to the system</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50">
-          <CardContent className="p-6 text-center">
-            <Users className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-            <h3 className="font-semibold mb-2">Donor Management</h3>
-            <p className="text-sm text-gray-600">Manage donor database and communications</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-green-50 to-emerald-50">
-          <CardContent className="p-6 text-center">
-            <TrendingUp className="h-12 w-12 text-green-600 mx-auto mb-3" />
-            <h3 className="font-semibold mb-2">Generate Reports</h3>
-            <p className="text-sm text-gray-600">Monthly and annual donation reports</p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };

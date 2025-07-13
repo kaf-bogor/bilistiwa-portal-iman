@@ -26,14 +26,14 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Waqf & Assets", url: "/waqf-assets", icon: Building2 },
-  { title: "Scholarship Management", url: "/scholarships", icon: GraduationCap },
-  { title: "Ta'awun Donations", url: "/taawun", icon: Heart },
-  { title: "Productive Waqf Units", url: "/productive-waqf", icon: Store },
-  { title: "Teacher Welfare", url: "/teacher-welfare", icon: Users2 },
-  { title: "Document Management", url: "/documents", icon: FileText },
-  { title: "Events & Calendar", url: "/events", icon: Calendar },
-  { title: "User Management", url: "/users", icon: Settings },
+  { title: "Wakaf & Aset", url: "/waqf-assets", icon: Building2 },
+  { title: "Manajemen Beasiswa", url: "/scholarships", icon: GraduationCap },
+  { title: "Donasi Ta'awun", url: "/taawun", icon: Heart },
+  { title: "Unit Wakaf Produktif", url: "/productive-waqf", icon: Store },
+  { title: "Kesejahteraan Guru", url: "/teacher-welfare", icon: Users2 },
+  { title: "Manajemen Dokumen", url: "/documents", icon: FileText },
+  { title: "Acara & Kalender", url: "/events", icon: Calendar },
+  { title: "Manajemen Pengguna", url: "/users", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -66,7 +66,7 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-green-200 px-4 py-2">
-            {!collapsed && "Main Navigation"}
+            {!collapsed && "Navigasi Utama"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
