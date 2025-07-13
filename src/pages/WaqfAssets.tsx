@@ -1,267 +1,326 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, FileText, TrendingUp } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface WaqfAsset {
+  id: string;
+  name: string;
+  type: "Land" | "Building" | "Equipment";
+  location: string;
+  value: number;
+  status: "Active" | "Under Development" | "Completed";
+  description: string;
+  dateAcquired: string;
+}
 
 const WaqfAssets = () => {
-  const landAssets = [
+  const { toast } = useToast();
+  const [assets, setAssets] = useState<WaqfAsset[]>([
     {
-      name: "Main School Land",
-      location: "Jl. Raya Bogor KM 45",
-      area: "2,500 m²",
-      status: "Certified",
-      value: "Rp 1.2B",
-      certificate: "SHM No. 123/2020"
+      id: "1",
+      name: "Main Campus Land",
+      type: "Land",
+      location: "Bogor, West Java",
+      value: 2500000000,
+      status: "Active",
+      description: "Primary campus land for Kuttab Al Fatih",
+      dateAcquired: "2020-01-15"
     },
     {
-      name: "Expansion Plot A",
-      location: "Adjacent to main building",
-      area: "1,200 m²",
-      status: "In Process",
-      value: "Rp 800M",
-      certificate: "Processing"
-    },
-    {
-      name: "Productive Land",
-      location: "Behind school compound",
-      area: "800 m²",
-      status: "Productive",
-      value: "Rp 400M",
-      certificate: "SHM No. 456/2021"
+      id: "2", 
+      name: "School Building Phase 1",
+      type: "Building",
+      location: "Bogor, West Java",
+      value: 1800000000,
+      status: "Completed",
+      description: "First phase of school construction",
+      dateAcquired: "2021-06-10"
     }
-  ];
+  ]);
 
-  const constructionProjects = [
-    {
-      name: "New Classroom Block",
-      progress: 75,
-      budget: "Rp 850M",
-      spent: "Rp 637M",
-      completion: "March 2024",
-      contractor: "CV Berkah Mandiri"
-    },
-    {
-      name: "Multipurpose Hall",
-      progress: 45,
-      budget: "Rp 650M",
-      spent: "Rp 292M",
-      completion: "June 2024",
-      contractor: "PT Amanah Konstruksi"
-    },
-    {
-      name: "Teacher Housing",
-      progress: 20,
-      budget: "Rp 400M",
-      spent: "Rp 80M",
-      completion: "September 2024",
-      contractor: "CV Barokah Sejahtera"
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<WaqfAsset | null>(null);
+  const [formData, setFormData] = useState<{
+    name: string;
+    type: "Land" | "Building" | "Equipment";
+    location: string;
+    value: string;
+    status: "Active" | "Under Development" | "Completed";
+    description: string;
+    dateAcquired: string;
+  }>({
+    name: "",
+    type: "Land",
+    location: "",
+    value: "",
+    status: "Active",
+    description: "",
+    dateAcquired: ""
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      type: "Land",
+      location: "",
+      value: "",
+      status: "Active",
+      description: "",
+      dateAcquired: ""
+    });
+    setEditingAsset(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingAsset) {
+      setAssets(assets.map(asset => 
+        asset.id === editingAsset.id 
+          ? { ...asset, ...formData, value: Number(formData.value) }
+          : asset
+      ));
+      toast({ title: "Asset updated successfully" });
+    } else {
+      const newAsset: WaqfAsset = {
+        id: Date.now().toString(),
+        ...formData,
+        value: Number(formData.value)
+      };
+      setAssets([...assets, newAsset]);
+      toast({ title: "Asset created successfully" });
     }
-  ];
+    
+    setIsDialogOpen(false);
+    resetForm();
+  };
+
+  const handleEdit = (asset: WaqfAsset) => {
+    setEditingAsset(asset);
+    setFormData({
+      name: asset.name,
+      type: asset.type,
+      location: asset.location,
+      value: asset.value.toString(),
+      status: asset.status,
+      description: asset.description,
+      dateAcquired: asset.dateAcquired
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setAssets(assets.filter(asset => asset.id !== id));
+    toast({ title: "Asset deleted successfully" });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR'
+    }).format(value);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-amber-600 to-amber-700 rounded-lg p-6 text-white">
+      <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">Waqf & Assets Management</h1>
-        <p className="text-amber-100">Land ownership, construction progress, and asset documentation</p>
+        <p className="text-green-100">Manage waqf properties, land ownership, and asset documentation</p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-amber-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Land Assets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">4,500 m²</div>
-            <p className="text-xs text-amber-600 font-medium">3 certified plots</p>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Asset Value</CardTitle>
+            <CardTitle className="text-sm">Total Assets</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-800">Rp 2.4B</div>
-            <p className="text-xs text-green-600 font-medium">Current market value</p>
+            <div className="text-2xl font-bold">{assets.length}</div>
+            <p className="text-xs text-green-600">Properties & Equipment</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Active Projects</CardTitle>
+            <CardTitle className="text-sm">Total Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-800">3</div>
-            <p className="text-xs text-blue-600 font-medium">Under construction</p>
+            <div className="text-2xl font-bold">
+              {formatCurrency(assets.reduce((sum, asset) => sum + asset.value, 0))}
+            </div>
+            <p className="text-xs text-blue-600">Asset valuation</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-purple-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Documentation</CardTitle>
+            <CardTitle className="text-sm">Active Projects</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-800">85%</div>
-            <p className="text-xs text-purple-600 font-medium">Complete</p>
+            <div className="text-2xl font-bold">
+              {assets.filter(a => a.status === "Under Development").length}
+            </div>
+            <p className="text-xs text-purple-600">In development</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Land Assets */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-amber-600" />
-            Land Assets Inventory
+            <Building2 className="h-5 w-5" />
+            Waqf Assets
           </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {landAssets.map((land, index) => (
-              <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold text-lg">{land.name}</h3>
-                    <p className="text-gray-600 text-sm flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {land.location}
-                    </p>
-                  </div>
-                  <Badge 
-                    variant={land.status === 'Certified' ? 'default' : land.status === 'Productive' ? 'secondary' : 'outline'}
-                    className={
-                      land.status === 'Certified' ? 'bg-green-100 text-green-800' :
-                      land.status === 'Productive' ? 'bg-blue-100 text-blue-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Asset
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingAsset ? "Edit Asset" : "Add New Asset"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Asset Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="type">Type</Label>
+                  <select
+                    id="type"
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value as "Land" | "Building" | "Equipment"})}
+                    className="w-full p-2 border rounded-md"
+                    required
                   >
-                    {land.status}
-                  </Badge>
+                    <option value="Land">Land</option>
+                    <option value="Building">Building</option>
+                    <option value="Equipment">Equipment</option>
+                  </select>
                 </div>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Area:</span>
-                    <p className="font-medium">{land.area}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Estimated Value:</span>
-                    <p className="font-medium text-green-600">{land.value}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Certificate:</span>
-                    <p className="font-medium">{land.certificate}</p>
-                  </div>
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    required
+                  />
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Construction Progress */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-blue-600" />
-            Construction Projects Progress
-          </CardTitle>
+                <div>
+                  <Label htmlFor="value">Value (IDR)</Label>
+                  <Input
+                    id="value"
+                    type="number"
+                    value={formData.value}
+                    onChange={(e) => setFormData({...formData, value: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <select
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value as "Active" | "Under Development" | "Completed"})}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Under Development">Under Development</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="dateAcquired">Date Acquired</Label>
+                  <Input
+                    id="dateAcquired"
+                    type="date"
+                    value={formData.dateAcquired}
+                    onChange={(e) => setFormData({...formData, dateAcquired: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    {editingAsset ? "Update" : "Create"} Asset
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {constructionProjects.map((project, index) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold text-lg">{project.name}</h3>
-                    <p className="text-gray-600 text-sm">Contractor: {project.contractor}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Target Completion</p>
-                    <p className="font-medium">{project.completion}</p>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Progress</span>
-                    <span className="text-sm font-bold text-blue-600">{project.progress}%</span>
-                  </div>
-                  <Progress value={project.progress} className="h-3" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Total Budget:</span>
-                    <p className="font-medium text-lg">{project.budget}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Amount Spent:</span>
-                    <p className="font-medium text-lg text-orange-600">{project.spent}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Documentation Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-purple-600" />
-            Documentation Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <h4 className="font-semibold">Required Documents</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Land Certificates</span>
-                  <Badge className="bg-green-100 text-green-800">Complete</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Building Permits</span>
-                  <Badge className="bg-green-100 text-green-800">Complete</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Environmental Impact</span>
-                  <Badge className="bg-yellow-100 text-yellow-800">In Progress</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Fire Safety Certificates</span>
-                  <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <h4 className="font-semibold">Waqf Documentation</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Waqf Deeds</span>
-                  <Badge className="bg-green-100 text-green-800">Complete</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Nazhir Appointments</span>
-                  <Badge className="bg-green-100 text-green-800">Complete</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">BWI Registration</span>
-                  <Badge className="bg-green-100 text-green-800">Complete</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Annual Reports</span>
-                  <Badge className="bg-blue-100 text-blue-800">Updated</Badge>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {assets.map((asset) => (
+                <TableRow key={asset.id}>
+                  <TableCell className="font-medium">{asset.name}</TableCell>
+                  <TableCell>{asset.type}</TableCell>
+                  <TableCell>{asset.location}</TableCell>
+                  <TableCell>{formatCurrency(asset.value)}</TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      asset.status === "Active" ? "default" :
+                      asset.status === "Completed" ? "secondary" : "outline"
+                    }>
+                      {asset.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(asset)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(asset.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
