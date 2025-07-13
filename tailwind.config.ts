@@ -1,5 +1,6 @@
 
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
 	darkMode: ["class"],
@@ -62,6 +63,34 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Islamic-themed color palette
+				islamic: {
+					primary: '#0F4C3A', // Deep forest green
+					secondary: '#D4AF37', // Islamic gold
+					accent: '#8B4513', // Warm brown
+					light: '#F0F8F0', // Very light green
+					dark: '#0A3A2A', // Darker green
+				},
+				// Semantic colors for status
+				status: {
+					success: '#059669', // Emerald green
+					warning: '#D97706', // Amber
+					error: '#DC2626', // Red
+					info: '#2563EB', // Blue
+					pending: '#6B7280', // Gray
+				},
+				// Functional colors
+				surface: {
+					primary: '#FFFFFF',
+					secondary: '#F9FAFB',
+					tertiary: '#F3F4F6',
+				},
+				text: {
+					primary: '#111827',
+					secondary: '#6B7280',
+					tertiary: '#9CA3AF',
+					inverse: '#FFFFFF',
 				}
 			},
 			fontFamily: {
@@ -97,5 +126,5 @@ export default {
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [tailwindcssAnimate],
 } satisfies Config;

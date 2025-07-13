@@ -155,68 +155,75 @@ const ScholarshipManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Manajemen Beasiswa</h1>
-        <p className="text-blue-100">Kelola beasiswa siswa, pendanaan, dan program dukungan akademik</p>
+      <div className="bg-gradient-to-r from-islamic-primary to-islamic-dark rounded-xl p-8 text-white shadow-lg">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 bg-islamic-secondary rounded-full flex items-center justify-center">
+            <GraduationCap className="h-6 w-6 text-islamic-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Manajemen Beasiswa</h1>
+            <p className="text-islamic-secondary/80 text-sm">Kelola beasiswa siswa, pendanaan, dan program dukungan akademik</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-status-info bg-surface-primary shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Beasiswa</CardTitle>
+            <CardTitle className="text-sm text-text-secondary">Total Beasiswa</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{scholarships.length}</div>
-            <p className="text-xs text-blue-600">Program aktif</p>
+            <div className="text-2xl font-bold text-text-primary">{scholarships.length}</div>
+            <p className="text-xs text-status-info">Program aktif</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-status-success bg-surface-primary shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Siswa Aktif</CardTitle>
+            <CardTitle className="text-sm text-text-secondary">Siswa Aktif</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-text-primary">
               {scholarships.filter(s => s.status === "Active").length}
             </div>
-            <p className="text-xs text-green-600">Sedang didanai</p>
+            <p className="text-xs text-status-success">Sedang didanai</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-islamic-secondary bg-surface-primary shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Pendanaan</CardTitle>
+            <CardTitle className="text-sm text-text-secondary">Total Pendanaan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-text-primary">
               {formatCurrency(scholarships.reduce((sum, s) => sum + s.amount, 0))}
             </div>
-            <p className="text-xs text-purple-600">Anggaran tahunan</p>
+            <p className="text-xs" style={{color: '#D4AF37'}}>Anggaran tahunan</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-orange-500">
+        <Card className="border-l-4 border-l-status-warning bg-surface-primary shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Rata-rata IPK</CardTitle>
+            <CardTitle className="text-sm text-text-secondary">Rata-rata IPK</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-text-primary">
               {scholarships.length > 0 ? (scholarships.reduce((sum, s) => sum + s.gpa, 0) / scholarships.length).toFixed(2) : "0.00"}
             </div>
-            <p className="text-xs text-orange-600">Prestasi akademik</p>
+            <p className="text-xs text-status-warning">Prestasi akademik</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
+      <Card className="bg-surface-primary shadow-lg border-0">
+        <CardHeader className="flex flex-row items-center justify-between bg-surface-secondary rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-text-primary">
+            <GraduationCap className="h-5 w-5 text-islamic-primary" />
             Penerima Beasiswa
           </CardTitle>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm}>
+              <Button onClick={resetForm} className="bg-islamic-primary hover:bg-islamic-dark text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Beasiswa
               </Button>
@@ -330,10 +337,10 @@ const ScholarshipManagement = () => {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">
+                  <Button type="submit" className="flex-1 bg-islamic-primary hover:bg-islamic-dark text-white">
                     {editingScholarship ? "Perbarui" : "Buat"} Beasiswa
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-text-tertiary text-text-secondary hover:bg-surface-tertiary">
                     Batal
                   </Button>
                 </div>

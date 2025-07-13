@@ -76,10 +76,10 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       className={({ isActive: navIsActive }) => `
-                        flex items-center gap-3 px-4 py-3 rounded-lg mx-2 transition-all duration-200
+                        flex items-center gap-3 px-4 py-3 rounded-xl mx-2 transition-all duration-300 ease-in-out
                         ${navIsActive || isActive(item.url)
-                          ? "bg-amber-400 text-green-800 font-semibold shadow-lg"
-                          : "text-green-100 hover:bg-green-700 hover:text-white"
+                          ? "bg-islamic-primary text-white font-medium"
+                          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                         }
                       `}
                     >
@@ -93,15 +93,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Islamic Pattern Decoration */}
-        {!collapsed && (
-          <div className="mt-auto p-4">
-            <div className="bg-green-700 rounded-lg p-3 text-center">
-              <div className="text-amber-300 text-lg mb-1">بِسْمِ اللَّهِ</div>
-              <p className="text-green-200 text-xs">Barakallahu Fiikum</p>
-            </div>
-          </div>
-        )}
       </SidebarContent>
     </Sidebar>
   );

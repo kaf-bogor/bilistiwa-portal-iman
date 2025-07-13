@@ -179,68 +179,75 @@ const TaawunDonations = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Donasi Ta'awun</h1>
-        <p className="text-red-100">Manajemen donasi gotong royong dan dukungan masyarakat</p>
+      <div className="bg-gradient-to-r from-islamic-accent to-islamic-primary rounded-xl p-8 text-white shadow-lg">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 bg-islamic-secondary rounded-full flex items-center justify-center">
+            <Heart className="h-6 w-6 text-islamic-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Donasi Ta'awun</h1>
+            <p className="text-islamic-secondary/80 text-sm">Manajemen donasi gotong royong dan dukungan masyarakat</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-red-500">
+        <Card className="border-l-4 border-l-islamic-accent bg-surface-primary shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Donasi</CardTitle>
+            <CardTitle className="text-sm text-text-secondary">Total Donasi</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{donations.length}</div>
-            <p className="text-xs text-red-600">Donasi tercatat</p>
+            <div className="text-2xl font-bold text-text-primary">{donations.length}</div>
+            <p className="text-xs text-islamic-accent">Donasi tercatat</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-status-success bg-surface-primary shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Jumlah</CardTitle>
+            <CardTitle className="text-sm text-text-secondary">Total Jumlah</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-text-primary">
               {formatCurrency(donations.reduce((sum, d) => sum + d.amount, 0))}
             </div>
-            <p className="text-xs text-green-600">Total terkumpul</p>
+            <p className="text-xs text-status-success">Total terkumpul</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-status-info bg-surface-primary shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Selesai</CardTitle>
+            <CardTitle className="text-sm text-text-secondary">Selesai</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-text-primary">
               {donations.filter(d => d.status === "Completed").length}
             </div>
-            <p className="text-xs text-blue-600">Bantuan tersalurkan</p>
+            <p className="text-xs text-status-info">Bantuan tersalurkan</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-islamic-secondary bg-surface-primary shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Anonim</CardTitle>
+            <CardTitle className="text-sm text-text-secondary">Anonim</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-text-primary">
               {donations.filter(d => d.isAnonymous).length}
             </div>
-            <p className="text-xs text-purple-600">Donatur anonim</p>
+            <p className="text-xs" style={{color: '#D4AF37'}}>Donatur anonim</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5" />
+      <Card className="bg-surface-primary shadow-lg border-0">
+        <CardHeader className="flex flex-row items-center justify-between bg-surface-secondary rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-text-primary">
+            <Heart className="h-5 w-5 text-islamic-accent" />
             Catatan Donasi
           </CardTitle>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm}>
+              <Button onClick={resetForm} className="bg-islamic-accent hover:bg-islamic-primary text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Catat Donasi
               </Button>
@@ -378,10 +385,10 @@ const TaawunDonations = () => {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">
+                  <Button type="submit" className="flex-1 bg-islamic-accent hover:bg-islamic-primary text-white">
                     {editingDonation ? "Perbarui" : "Catat"} Donasi
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-text-tertiary text-text-secondary hover:bg-surface-tertiary">
                     Batal
                   </Button>
                 </div>

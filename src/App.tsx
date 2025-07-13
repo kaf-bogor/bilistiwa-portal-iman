@@ -7,13 +7,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
-import WaqfAssets from "./pages/WaqfAssets";
-import ScholarshipManagement from "./pages/ScholarshipManagement";
-import TaawunDonations from "./pages/TaawunDonations";
-import ProductiveWaqf from "./pages/ProductiveWaqf";
-import TeacherWelfare from "./pages/TeacherWelfare";
-import DocumentManagement from "./pages/DocumentManagement";
-import EventsCalendar from "./pages/EventsCalendar";
+import WaqfAssets from "./pages/AsetWakaf";
+import ScholarshipManagement from "./pages/ManajemenBeasiswa";
+import TaawunDonations from "./pages/DonasiTaawun";
+import ProductiveWaqf from "./pages/WakafProduktif";
+import TeacherWelfare from "./pages/KesejahteraanGuru";
+import ManajemenDokumen from "./pages/ManajemenDokumen";
+import EventsCalendar from "./pages/KalenderAgenda";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
@@ -26,7 +26,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <SidebarProvider>
-          <div className="min-h-screen flex w-full bg-gradient-to-br from-green-50 to-amber-50">
+          <div className="min-h-screen flex w-full bg-gradient-to-br from-islamic-light to-surface-secondary">
             <Routes>
               <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<Dashboard />} />
@@ -35,7 +35,7 @@ const App = () => (
                 <Route path="taawun" element={<TaawunDonations />} />
                 <Route path="productive-waqf" element={<ProductiveWaqf />} />
                 <Route path="teacher-welfare" element={<TeacherWelfare />} />
-                <Route path="documents" element={<DocumentManagement />} />
+                <Route path="documents" element={<ManajemenDokumen />} />
                 <Route path="events" element={<EventsCalendar />} />
                 <Route path="users" element={<UserManagement />} />
               </Route>
