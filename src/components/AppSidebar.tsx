@@ -1,4 +1,3 @@
-
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -47,7 +46,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-64"} border-r-2 border-green-100 bg-gradient-to-b from-green-800 to-green-900`}>
+    <Sidebar className="border-r border-gray-200 bg-white shadow-sm">
       <SidebarContent>
         {/* Logo Section */}
         <div className="p-4 border-b border-green-700">
