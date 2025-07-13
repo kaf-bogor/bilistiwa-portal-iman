@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - only authenticated users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && 
+        (resource.data.role in ['Super Admin', 'Finance Team', 'Unit Manager', 'Leadership']);
+    }
+    
+    // Waqf Assets - role-based access
+    match /waqfAssets/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Finance Team', 'Unit Manager'];
+    }
+    
+    // Scholarships - role-based access
+    match /scholarships/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Finance Team', 'Leadership'];
+    }
+    
+    // Ta'awun Donations - role-based access
+    match /taawunDonations/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Finance Team'];
+    }
+    
+    // Productive Waqf - role-based access
+    match /productiveWaqf/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Unit Manager'];
+    }
+    
+    // Teacher Welfare - role-based access
+    match /teacherWelfare/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Finance Team', 'Leadership'];
+    }
+    
+    // Documents - role-based access
+    match /documents/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Finance Team', 'Unit Manager', 'Leadership'];
+    }
+    
+    // Events - role-based access
+    match /events/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Leadership'];
+    }
+    
+    // Helper function to get user role
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+  }
+}

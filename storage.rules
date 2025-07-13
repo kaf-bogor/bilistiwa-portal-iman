@@ -1,0 +1,37 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Images folder - authenticated users can upload, everyone can read
+    match /images/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Documents folder - role-based access
+    match /documents/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Finance Team', 'Unit Manager', 'Leadership'];
+    }
+    
+    // Reports folder - restricted access
+    match /reports/{allPaths=**} {
+      allow read: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Finance Team', 'Leadership'];
+      allow write: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Finance Team'];
+    }
+    
+    // User uploads - users can only access their own files
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && 
+        getUserRole() in ['Super Admin', 'Leadership'];
+    }
+    
+    // Helper function to get user role from Firestore
+    function getUserRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+  }
+}

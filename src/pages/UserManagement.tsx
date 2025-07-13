@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Plus, Edit, Trash2, Eye, Shield, Users, Key } from "lucide-react";
+import { Settings, Plus, Edit, Trash2, Eye, Shield, Users, Key, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebaseCollection } from "@/hooks/useFirebase";
+import { usersService } from "@/lib/firebaseService";
 
 interface User {
-  id: string;
+  id?: string;
   username: string;
   fullName: string;
   email: string;
@@ -18,65 +20,32 @@ interface User {
   department: "Administration" | "Finance" | "Academic" | "Operations" | "IT" | "Management";
   status: "Active" | "Inactive" | "Suspended" | "Pending";
   lastLogin: string;
-  createdDate: string;
-  permissions: string[];
   phoneNumber: string;
   position: string;
   notes: string;
+  permissions: string[];
 }
 
 const UserManagement = () => {
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "1",
-      username: "admin",
-      fullName: "Ahmad Suharto",
-      email: "admin@kuttab.edu",
-      role: "Super Admin",
-      department: "Administration",
-      status: "Active",
-      lastLogin: "2024-01-20",
-      createdDate: "2022-01-15",
-      permissions: ["All Access", "User Management", "System Settings", "Financial Data"],
-      phoneNumber: "081234567890",
-      position: "System Administrator",
-      notes: "Primary system administrator with full access"
-    },
-    {
-      id: "2",
-      username: "finance01",
-      fullName: "Siti Aminah",
-      email: "siti.aminah@kuttab.edu",
-      role: "Finance Team",
-      department: "Finance",
-      status: "Active",
-      lastLogin: "2024-01-19",
-      createdDate: "2022-03-10",
-      permissions: ["Financial Data", "Reports", "Donations", "Scholarships"],
-      phoneNumber: "081345678901",
-      position: "Finance Manager",
-      notes: "Handles financial operations and reporting"
-    },
-    {
-      id: "3",
-      username: "unit01",
-      fullName: "Muhammad Yusuf",
-      email: "muhammad.yusuf@kuttab.edu",
-      role: "Unit Manager",
-      department: "Operations",
-      status: "Active",
-      lastLogin: "2024-01-18",
-      createdDate: "2022-06-01",
-      permissions: ["Unit Management", "Productive Waqf", "Asset Management"],
-      phoneNumber: "081456789012",
-      position: "Operations Manager",
-      notes: "Manages productive waqf units and operations"
-    }
-  ]);
+  const { 
+    documents: firebaseUsers, 
+    loading, 
+    error, 
+    createDocument, 
+    updateDocument, 
+    deleteDocument 
+  } = useFirebaseCollection(usersService, {
+    orderByField: 'fullName',
+    orderDirection: 'asc'
+  });
+
+  // Type the Firebase documents as User objects
+  const users = firebaseUsers as unknown as User[];
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState<{
     username: string;
     fullName: string;
@@ -84,8 +53,6 @@ const UserManagement = () => {
     role: "Super Admin" | "Finance Team" | "Unit Manager" | "Leadership" | "Teacher" | "Staff";
     department: "Administration" | "Finance" | "Academic" | "Operations" | "IT" | "Management";
     status: "Active" | "Inactive" | "Suspended" | "Pending";
-    lastLogin: string;
-    createdDate: string;
     permissions: string;
     phoneNumber: string;
     position: string;
@@ -97,8 +64,6 @@ const UserManagement = () => {
     role: "Staff",
     department: "Administration",
     status: "Pending",
-    lastLogin: "",
-    createdDate: "",
     permissions: "",
     phoneNumber: "",
     position: "",
@@ -113,8 +78,6 @@ const UserManagement = () => {
       role: "Staff",
       department: "Administration",
       status: "Pending",
-      lastLogin: "",
-      createdDate: "",
       permissions: "",
       phoneNumber: "",
       position: "",
@@ -123,36 +86,38 @@ const UserManagement = () => {
     setEditingUser(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     
-    const permissionsArray = formData.permissions.split(',').map(p => p.trim()).filter(p => p);
-    
-    if (editingUser) {
-      setUsers(users.map(user => 
-        user.id === editingUser.id 
-          ? { 
-              ...user, 
-              ...formData, 
-              permissions: permissionsArray
-            }
-          : user
-      ));
-      toast({ title: "Pengguna berhasil diperbarui" });
-    } else {
-      const newUser: User = {
-        id: Date.now().toString(),
+    try {
+      const permissionsArray = formData.permissions.split(',').map(p => p.trim()).filter(p => p);
+      
+      const userData = {
         ...formData,
         permissions: permissionsArray,
-        createdDate: new Date().toISOString().split('T')[0],
-        lastLogin: "-"
+        lastLogin: editingUser?.lastLogin || "-"
       };
-      setUsers([...users, newUser]);
-      toast({ title: "Pengguna berhasil dibuat" });
+
+      if (editingUser) {
+        await updateDocument(editingUser.id!, userData);
+        toast({ title: "Pengguna berhasil diperbarui" });
+      } else {
+        await createDocument(userData);
+        toast({ title: "Pengguna berhasil dibuat" });
+      }
+      
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: "Gagal menyimpan pengguna", 
+        variant: "destructive" 
+      });
+    } finally {
+      setSubmitting(false);
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (user: User) => {
@@ -164,8 +129,6 @@ const UserManagement = () => {
       role: user.role,
       department: user.department,
       status: user.status,
-      lastLogin: user.lastLogin,
-      createdDate: user.createdDate,
       permissions: user.permissions.join(', '),
       phoneNumber: user.phoneNumber,
       position: user.position,
@@ -174,9 +137,19 @@ const UserManagement = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setUsers(users.filter(user => user.id !== id));
-    toast({ title: "Pengguna berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus pengguna ini?")) {
+      try {
+        await deleteDocument(id);
+        toast({ title: "Pengguna berhasil dihapus" });
+      } catch (error) {
+        toast({ 
+          title: "Error", 
+          description: "Gagal menghapus pengguna", 
+          variant: "destructive" 
+        });
+      }
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -210,9 +183,21 @@ const UserManagement = () => {
     });
   };
 
+  // Calculate statistics
   const activeUsers = users.filter(u => u.status === "Active").length;
   const pendingUsers = users.filter(u => u.status === "Pending").length;
   const suspendedUsers = users.filter(u => u.status === "Suspended").length;
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">Error loading users: {error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -227,7 +212,9 @@ const UserManagement = () => {
             <CardTitle className="text-sm">Total Pengguna</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-2xl font-bold">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : users.length}
+            </div>
             <p className="text-xs text-slate-600">Pengguna sistem</p>
           </CardContent>
         </Card>
@@ -237,7 +224,9 @@ const UserManagement = () => {
             <CardTitle className="text-sm">Pengguna Aktif</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeUsers}</div>
+            <div className="text-2xl font-bold">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : activeUsers}
+            </div>
             <p className="text-xs text-green-600">Sedang aktif</p>
           </CardContent>
         </Card>
@@ -247,7 +236,9 @@ const UserManagement = () => {
             <CardTitle className="text-sm">Menunggu Persetujuan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingUsers}</div>
+            <div className="text-2xl font-bold">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : pendingUsers}
+            </div>
             <p className="text-xs text-yellow-600">Menunggu persetujuan</p>
           </CardContent>
         </Card>
@@ -257,7 +248,9 @@ const UserManagement = () => {
             <CardTitle className="text-sm">Ditangguhkan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{suspendedUsers}</div>
+            <div className="text-2xl font-bold">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : suspendedUsers}
+            </div>
             <p className="text-xs text-red-600">Akses ditangguhkan</p>
           </CardContent>
         </Card>
@@ -399,7 +392,8 @@ const UserManagement = () => {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">
+                  <Button type="submit" className="flex-1" disabled={submitting}>
+                    {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     {editingUser ? "Perbarui" : "Buat"} Pengguna
                   </Button>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -411,55 +405,62 @@ const UserManagement = () => {
           </Dialog>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Pengguna</TableHead>
-                <TableHead>Peran</TableHead>
-                <TableHead>Departemen</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Login Terakhir</TableHead>
-                <TableHead>Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    <div>
-                      <div>{user.fullName}</div>
-                      <div className="text-xs text-gray-500">@{user.username} • {user.email}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getRoleColor(user.role)}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.department}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusColor(user.status)}>
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(user.lastLogin)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Key className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(user.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading users...</span>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pengguna</TableHead>
+                  <TableHead>Peran</TableHead>
+                  <TableHead>Departemen</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Login Terakhir</TableHead>
+                  <TableHead>Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      <div>
+                        <div>{user.fullName}</div>
+                        <div className="text-xs text-gray-500">@{user.username} • {user.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleColor(user.role)}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.department}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusColor(user.status)}>
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(user.lastLogin)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Key className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDelete(user.id!)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
