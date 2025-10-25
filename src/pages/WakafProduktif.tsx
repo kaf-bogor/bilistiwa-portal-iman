@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Store, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { productiveWaqfService } from "@/lib/firebaseService";
+import { Timestamp } from "firebase/firestore";
 
 interface ProductiveWaqfUnit {
-  id: string;
+  id?: string;
   unitName: string;
   unitType: "Retail Store" | "Food Court" | "Rental Property" | "Agriculture" | "Manufacturing" | "Services";
   location: string;
@@ -22,40 +24,24 @@ interface ProductiveWaqfUnit {
   description: string;
   targetRevenue: number;
   employees: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 const ProductiveWaqf = () => {
   const { toast } = useToast();
-  const [units, setUnits] = useState<ProductiveWaqfUnit[]>([
-    {
-      id: "1",
-      unitName: "Kuttab Mart",
-      unitType: "Retail Store",
-      location: "Main Campus, Bogor",
-      manager: "Ahmad Suharto",
-      monthlyRevenue: 15000000,
-      monthlyExpenses: 8000000,
-      status: "Active",
-      establishedDate: "2023-03-15",
-      description: "Mini market serving campus community",
-      targetRevenue: 20000000,
-      employees: 3
-    },
-    {
-      id: "2",
-      unitName: "Barokah Catering",
-      unitType: "Food Court",
-      location: "Campus Cafeteria",
-      manager: "Siti Aminah",
-      monthlyRevenue: 12000000,
-      monthlyExpenses: 7000000,
-      status: "Active",
-      establishedDate: "2023-06-01",
-      description: "Halal catering service for events and daily meals",
-      targetRevenue: 18000000,
-      employees: 5
-    }
-  ]);
+  const [units, setUnits] = useState<ProductiveWaqfUnit[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch units from Firestore on component mount
+  useEffect(() => {
+    const unsubscribe = productiveWaqfService.onSnapshot((documents) => {
+      setUnits(documents as ProductiveWaqfUnit[]);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<ProductiveWaqfUnit | null>(null);
@@ -102,38 +88,51 @@ const ProductiveWaqf = () => {
     setEditingUnit(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingUnit) {
-      setUnits(units.map(unit => 
-        unit.id === editingUnit.id 
-          ? { 
-              ...unit, 
-              ...formData, 
-              monthlyRevenue: Number(formData.monthlyRevenue),
-              monthlyExpenses: Number(formData.monthlyExpenses),
-              targetRevenue: Number(formData.targetRevenue),
-              employees: Number(formData.employees)
-            }
-          : unit
-      ));
-      toast({ title: "Unit wakaf produktif berhasil diperbarui" });
-    } else {
-      const newUnit: ProductiveWaqfUnit = {
-        id: Date.now().toString(),
-        ...formData,
-        monthlyRevenue: Number(formData.monthlyRevenue),
-        monthlyExpenses: Number(formData.monthlyExpenses),
-        targetRevenue: Number(formData.targetRevenue),
-        employees: Number(formData.employees)
-      };
-      setUnits([...units, newUnit]);
-      toast({ title: "Unit wakaf produktif berhasil dibuat" });
+
+    try {
+      if (editingUnit && editingUnit.id) {
+        await productiveWaqfService.update(editingUnit.id, {
+          unitName: formData.unitName,
+          unitType: formData.unitType,
+          location: formData.location,
+          manager: formData.manager,
+          monthlyRevenue: Number(formData.monthlyRevenue),
+          monthlyExpenses: Number(formData.monthlyExpenses),
+          targetRevenue: Number(formData.targetRevenue),
+          employees: Number(formData.employees),
+          status: formData.status,
+          establishedDate: formData.establishedDate,
+          description: formData.description
+        });
+        toast({ title: "Unit wakaf produktif berhasil diperbarui" });
+      } else {
+        await productiveWaqfService.create({
+          unitName: formData.unitName,
+          unitType: formData.unitType,
+          location: formData.location,
+          manager: formData.manager,
+          monthlyRevenue: Number(formData.monthlyRevenue),
+          monthlyExpenses: Number(formData.monthlyExpenses),
+          targetRevenue: Number(formData.targetRevenue),
+          employees: Number(formData.employees),
+          status: formData.status,
+          establishedDate: formData.establishedDate,
+          description: formData.description
+        });
+        toast({ title: "Unit wakaf produktif berhasil dibuat" });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan unit",
+        variant: "destructive"
+      });
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (unit: ProductiveWaqfUnit) => {
@@ -154,9 +153,17 @@ const ProductiveWaqf = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setUnits(units.filter(unit => unit.id !== id));
-    toast({ title: "Unit wakaf produktif berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await productiveWaqfService.delete(id);
+      toast({ title: "Unit wakaf produktif berhasil dihapus" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus unit",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -411,7 +418,20 @@ const ProductiveWaqf = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {units.map((unit) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : units.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Belum ada data unit
+                  </TableCell>
+                </TableRow>
+              ) : (
+                units.map((unit) => (
                 <TableRow key={unit.id}>
                   <TableCell className="font-medium">{unit.unitName}</TableCell>
                   <TableCell>
@@ -434,13 +454,13 @@ const ProductiveWaqf = () => {
                       <Button variant="outline" size="sm" onClick={() => handleEdit(unit)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(unit.id)}>
+                      <Button variant="outline" size="sm" onClick={() => unit.id && handleDelete(unit.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>

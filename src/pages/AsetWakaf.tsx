@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Building2, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { waqfAssetsService } from "@/lib/firebaseService";
+import { Timestamp } from "firebase/firestore";
 
 interface WaqfAsset {
-  id: string;
+  id?: string;
   name: string;
   type: "Tanah" | "Bangunan" | "Peralatan";
   location: string;
@@ -18,32 +20,24 @@ interface WaqfAsset {
   status: "Aktif" | "Dalam Pengembangan" | "Selesai";
   description: string;
   dateAcquired: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 const WaqfAssets = () => {
   const { toast } = useToast();
-  const [assets, setAssets] = useState<WaqfAsset[]>([
-    {
-      id: "1",
-      name: "Tanah Kampus Utama",
-      type: "Tanah",
-      location: "Bogor, Jawa Barat",
-      value: 2500000000,
-      status: "Aktif",
-      description: "Tanah kampus utama untuk Kuttab Al Fatih",
-      dateAcquired: "2020-01-15"
-    },
-    {
-      id: "2", 
-      name: "Gedung Sekolah Fase 1",
-      type: "Bangunan",
-      location: "Bogor, Jawa Barat",
-      value: 1800000000,
-      status: "Selesai",
-      description: "Fase pertama pembangunan sekolah",
-      dateAcquired: "2021-06-10"
-    }
-  ]);
+  const [assets, setAssets] = useState<WaqfAsset[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch assets from Firestore on component mount
+  useEffect(() => {
+    const unsubscribe = waqfAssetsService.onSnapshot((documents) => {
+      setAssets(documents as WaqfAsset[]);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<WaqfAsset | null>(null);
@@ -78,28 +72,43 @@ const WaqfAssets = () => {
     setEditingAsset(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingAsset) {
-      setAssets(assets.map(asset => 
-        asset.id === editingAsset.id 
-          ? { ...asset, ...formData, value: Number(formData.value) }
-          : asset
-      ));
-      toast({ title: "Aset berhasil diperbarui" });
-    } else {
-      const newAsset: WaqfAsset = {
-        id: Date.now().toString(),
-        ...formData,
-        value: Number(formData.value)
-      };
-      setAssets([...assets, newAsset]);
-      toast({ title: "Aset berhasil dibuat" });
+
+    try {
+      if (editingAsset && editingAsset.id) {
+        await waqfAssetsService.update(editingAsset.id, {
+          name: formData.name,
+          type: formData.type,
+          location: formData.location,
+          value: Number(formData.value),
+          status: formData.status,
+          description: formData.description,
+          dateAcquired: formData.dateAcquired
+        });
+        toast({ title: "Aset berhasil diperbarui" });
+      } else {
+        await waqfAssetsService.create({
+          name: formData.name,
+          type: formData.type,
+          location: formData.location,
+          value: Number(formData.value),
+          status: formData.status,
+          description: formData.description,
+          dateAcquired: formData.dateAcquired
+        });
+        toast({ title: "Aset berhasil dibuat" });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan aset",
+        variant: "destructive"
+      });
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (asset: WaqfAsset) => {
@@ -116,9 +125,17 @@ const WaqfAssets = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setAssets(assets.filter(asset => asset.id !== id));
-    toast({ title: "Aset berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await waqfAssetsService.delete(id);
+      toast({ title: "Aset berhasil dihapus" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus aset",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -292,7 +309,20 @@ const WaqfAssets = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {assets.map((asset) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : assets.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    Belum ada data aset
+                  </TableCell>
+                </TableRow>
+              ) : (
+                assets.map((asset) => (
                 <TableRow key={asset.id}>
                   <TableCell className="font-medium">{asset.name}</TableCell>
                   <TableCell>{asset.type}</TableCell>
@@ -311,13 +341,13 @@ const WaqfAssets = () => {
                       <Button variant="outline" size="sm" onClick={() => handleEdit(asset)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(asset.id)}>
+                      <Button variant="outline" size="sm" onClick={() => asset.id && handleDelete(asset.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>

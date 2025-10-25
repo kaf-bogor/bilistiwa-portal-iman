@@ -15,6 +15,8 @@ import TeacherWelfare from "./pages/KesejahteraanGuru";
 import ManajemenDokumen from "./pages/ManajemenDokumen";
 import EventsCalendar from "./pages/KalenderAgenda";
 import UserManagement from "./pages/UserManagement";
+import MenuManagement from "./pages/MenuManagement";
+import FirestoreInit from "./pages/FirestoreInit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
                 <Route path="documents" element={<ManajemenDokumen />} />
                 <Route path="events" element={<EventsCalendar />} />
                 <Route path="users" element={<UserManagement />} />
+                <Route path="menu-management" element={<MenuManagement />} />
+                <Route path="firestore-init" element={<FirestoreInit />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

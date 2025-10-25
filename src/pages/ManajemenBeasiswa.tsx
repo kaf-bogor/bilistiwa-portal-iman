@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { scholarshipsService } from "@/lib/firebaseService";
+import { Timestamp } from "firebase/firestore";
 
 interface Scholarship {
-  id: string;
+  id?: string;
   studentName: string;
   program: "Elementary" | "Middle School" | "High School" | "University";
   amount: number;
@@ -20,36 +22,24 @@ interface Scholarship {
   sponsor: string;
   gpa: number;
   description: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 const ScholarshipManagement = () => {
   const { toast } = useToast();
-  const [scholarships, setScholarships] = useState<Scholarship[]>([
-    {
-      id: "1",
-      studentName: "Ahmad Fauzi",
-      program: "University",
-      amount: 5000000,
-      status: "Active",
-      startDate: "2024-01-15",
-      endDate: "2024-12-15",
-      sponsor: "Yayasan Bilistiwa",
-      gpa: 3.8,
-      description: "Computer Science student at IPB University"
-    },
-    {
-      id: "2",
-      studentName: "Siti Nurhaliza",
-      program: "High School",
-      amount: 2500000,
-      status: "Active",
-      startDate: "2024-02-01",
-      endDate: "2025-01-31",
-      sponsor: "Individual Donor",
-      gpa: 3.9,
-      description: "Outstanding student in Islamic studies"
-    }
-  ]);
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch scholarships from Firestore on component mount
+  useEffect(() => {
+    const unsubscribe = scholarshipsService.onSnapshot((documents) => {
+      setScholarships(documents as Scholarship[]);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingScholarship, setEditingScholarship] = useState<Scholarship | null>(null);
@@ -90,29 +80,47 @@ const ScholarshipManagement = () => {
     setEditingScholarship(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingScholarship) {
-      setScholarships(scholarships.map(scholarship => 
-        scholarship.id === editingScholarship.id 
-          ? { ...scholarship, ...formData, amount: Number(formData.amount), gpa: Number(formData.gpa) }
-          : scholarship
-      ));
-      toast({ title: "Beasiswa berhasil diperbarui" });
-    } else {
-      const newScholarship: Scholarship = {
-        id: Date.now().toString(),
-        ...formData,
-        amount: Number(formData.amount),
-        gpa: Number(formData.gpa)
-      };
-      setScholarships([...scholarships, newScholarship]);
-      toast({ title: "Beasiswa berhasil dibuat" });
+
+    try {
+      if (editingScholarship && editingScholarship.id) {
+        await scholarshipsService.update(editingScholarship.id, {
+          studentName: formData.studentName,
+          program: formData.program,
+          amount: Number(formData.amount),
+          status: formData.status,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          sponsor: formData.sponsor,
+          gpa: Number(formData.gpa),
+          description: formData.description
+        });
+        toast({ title: "Beasiswa berhasil diperbarui" });
+      } else {
+        await scholarshipsService.create({
+          studentName: formData.studentName,
+          program: formData.program,
+          amount: Number(formData.amount),
+          status: formData.status,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          sponsor: formData.sponsor,
+          gpa: Number(formData.gpa),
+          description: formData.description
+        });
+        toast({ title: "Beasiswa berhasil dibuat" });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan beasiswa",
+        variant: "destructive"
+      });
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (scholarship: Scholarship) => {
@@ -131,9 +139,17 @@ const ScholarshipManagement = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setScholarships(scholarships.filter(scholarship => scholarship.id !== id));
-    toast({ title: "Beasiswa berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await scholarshipsService.delete(id);
+      toast({ title: "Beasiswa berhasil dihapus" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus beasiswa",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -362,7 +378,20 @@ const ScholarshipManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {scholarships.map((scholarship) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : scholarships.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Belum ada data beasiswa
+                  </TableCell>
+                </TableRow>
+              ) : (
+                scholarships.map((scholarship) => (
                 <TableRow key={scholarship.id}>
                   <TableCell className="font-medium">{scholarship.studentName}</TableCell>
                   <TableCell>{scholarship.program}</TableCell>
@@ -379,13 +408,13 @@ const ScholarshipManagement = () => {
                       <Button variant="outline" size="sm" onClick={() => handleEdit(scholarship)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(scholarship.id)}>
+                      <Button variant="outline" size="sm" onClick={() => scholarship.id && handleDelete(scholarship.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>

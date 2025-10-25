@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Heart, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { taawunDonationsService } from "@/lib/firebaseService";
+import { Timestamp } from "firebase/firestore";
 
 interface Donation {
-  id: string;
+  id?: string;
   donorName: string;
   donorEmail: string;
   donorPhone: string;
@@ -22,40 +24,23 @@ interface Donation {
   isAnonymous: boolean;
   paymentMethod: "Bank Transfer" | "Cash" | "Online Payment" | "Check";
   notes: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 const TaawunDonations = () => {
   const { toast } = useToast();
-  const [donations, setDonations] = useState<Donation[]>([
-    {
-      id: "1",
-      donorName: "Hamba Allah",
-      donorEmail: "anonymous@example.com",
-      donorPhone: "-",
-      amount: 1000000,
-      category: "Emergency Aid",
-      status: "Completed",
-      donationDate: "2024-01-15",
-      purpose: "Help for flood victims in Bogor",
-      isAnonymous: true,
-      paymentMethod: "Bank Transfer",
-      notes: "May Allah accept this donation"
-    },
-    {
-      id: "2",
-      donorName: "Ahmad Wijaya",
-      donorEmail: "ahmad.wijaya@email.com",
-      donorPhone: "081234567890",
-      amount: 500000,
-      category: "Medical Support",
-      status: "Confirmed",
-      donationDate: "2024-02-01",
-      purpose: "Medical treatment for underprivileged children",
-      isAnonymous: false,
-      paymentMethod: "Online Payment",
-      notes: "Regular monthly donation"
-    }
-  ]);
+  const [donations, setDonations] = useState<Donation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = taawunDonationsService.onSnapshot((documents) => {
+      setDonations(documents as Donation[]);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDonation, setEditingDonation] = useState<Donation | null>(null);
@@ -102,28 +87,41 @@ const TaawunDonations = () => {
     setEditingDonation(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingDonation) {
-      setDonations(donations.map(donation => 
-        donation.id === editingDonation.id 
-          ? { ...donation, ...formData, amount: Number(formData.amount) }
-          : donation
-      ));
-      toast({ title: "Donasi berhasil diperbarui" });
-    } else {
-      const newDonation: Donation = {
-        id: Date.now().toString(),
-        ...formData,
-        amount: Number(formData.amount)
+
+    try {
+      const donationData = {
+        donorName: formData.donorName,
+        donorEmail: formData.donorEmail,
+        donorPhone: formData.donorPhone,
+        amount: Number(formData.amount),
+        category: formData.category,
+        status: formData.status,
+        donationDate: formData.donationDate,
+        purpose: formData.purpose,
+        isAnonymous: formData.isAnonymous,
+        paymentMethod: formData.paymentMethod,
+        notes: formData.notes
       };
-      setDonations([...donations, newDonation]);
-      toast({ title: "Donasi berhasil dicatat" });
+
+      if (editingDonation && editingDonation.id) {
+        await taawunDonationsService.update(editingDonation.id, donationData);
+        toast({ title: "Donasi berhasil diperbarui" });
+      } else {
+        await taawunDonationsService.create(donationData);
+        toast({ title: "Donasi berhasil dicatat" });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan donasi",
+        variant: "destructive"
+      });
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (donation: Donation) => {
@@ -144,9 +142,17 @@ const TaawunDonations = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setDonations(donations.filter(donation => donation.id !== id));
-    toast({ title: "Catatan donasi berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await taawunDonationsService.delete(id);
+      toast({ title: "Catatan donasi berhasil dihapus" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus donasi",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -410,7 +416,20 @@ const TaawunDonations = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {donations.map((donation) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : donations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Belum ada data donasi
+                  </TableCell>
+                </TableRow>
+              ) : (
+                donations.map((donation) => (
                 <TableRow key={donation.id}>
                   <TableCell className="font-medium">
                     {donation.isAnonymous ? "Hamba Allah" : donation.donorName}
@@ -433,13 +452,13 @@ const TaawunDonations = () => {
                       <Button variant="outline" size="sm" onClick={() => handleEdit(donation)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(donation.id)}>
+                      <Button variant="outline" size="sm" onClick={() => donation.id && handleDelete(donation.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>

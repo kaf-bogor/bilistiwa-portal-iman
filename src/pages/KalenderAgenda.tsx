@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Plus, Edit, Trash2, Eye, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { eventsService } from "@/lib/firebaseService";
+import { Timestamp } from "firebase/firestore";
 
 interface Event {
-  id: string;
+  id?: string;
   eventName: string;
   eventType: "Academic" | "Religious" | "Community" | "Administrative" | "Fundraising" | "Cultural";
   description: string;
@@ -28,52 +30,24 @@ interface Event {
   actualCost: number;
   requirements: string[];
   notes: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 const EventsCalendar = () => {
   const { toast } = useToast();
-  const [events, setEvents] = useState<Event[]>([
-    {
-      id: "1",
-      eventName: "Monthly Halaqah - Islamic Studies",
-      eventType: "Religious",
-      description: "Monthly Islamic studies circle for teachers and parents",
-      startDate: "2024-02-15",
-      endDate: "2024-02-15",
-      startTime: "19:00",
-      endTime: "21:00",
-      location: "Main Hall, Kuttab Al Fatih",
-      organizer: "Ustadz Ahmad Hidayat",
-      maxParticipants: 50,
-      currentParticipants: 35,
-      status: "Planned",
-      priority: "Medium",
-      budget: 500000,
-      actualCost: 0,
-      requirements: ["Sound System", "Projector", "Refreshments"],
-      notes: "Regular monthly program for community building"
-    },
-    {
-      id: "2",
-      eventName: "Annual Fundraising Dinner",
-      eventType: "Fundraising",
-      description: "Annual fundraising dinner to support school operations",
-      startDate: "2024-03-20",
-      endDate: "2024-03-20",
-      startTime: "18:00",
-      endTime: "22:00",
-      location: "Grand Ballroom, Hotel Bogor",
-      organizer: "Finance Committee",
-      maxParticipants: 200,
-      currentParticipants: 120,
-      status: "Planned",
-      priority: "High",
-      budget: 25000000,
-      actualCost: 0,
-      requirements: ["Venue", "Catering", "Entertainment", "Auction Items"],
-      notes: "Major fundraising event for the year"
-    }
-  ]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch events from Firestore on component mount
+  useEffect(() => {
+    const unsubscribe = eventsService.onSnapshot((docs) => {
+      setEvents(docs as Event[]);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -138,42 +112,65 @@ const EventsCalendar = () => {
     setEditingEvent(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const requirementsArray = formData.requirements.split(',').map(r => r.trim()).filter(r => r);
-    
-    if (editingEvent) {
-      setEvents(events.map(event => 
-        event.id === editingEvent.id 
-          ? { 
-              ...event, 
-              ...formData, 
-              maxParticipants: Number(formData.maxParticipants),
-              currentParticipants: Number(formData.currentParticipants),
-              budget: Number(formData.budget),
-              actualCost: Number(formData.actualCost),
-              requirements: requirementsArray
-            }
-          : event
-      ));
-      toast({ title: "Acara berhasil diperbarui" });
-    } else {
-      const newEvent: Event = {
-        id: Date.now().toString(),
-        ...formData,
-        maxParticipants: Number(formData.maxParticipants),
-        currentParticipants: Number(formData.currentParticipants),
-        budget: Number(formData.budget),
-        actualCost: Number(formData.actualCost),
-        requirements: requirementsArray
-      };
-      setEvents([...events, newEvent]);
-      toast({ title: "Acara berhasil dibuat" });
+
+    try {
+      const requirementsArray = formData.requirements.split(',').map(r => r.trim()).filter(r => r);
+
+      if (editingEvent && editingEvent.id) {
+        await eventsService.update(editingEvent.id, {
+          eventName: formData.eventName,
+          eventType: formData.eventType,
+          description: formData.description,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          location: formData.location,
+          organizer: formData.organizer,
+          maxParticipants: Number(formData.maxParticipants),
+          currentParticipants: Number(formData.currentParticipants),
+          status: formData.status,
+          priority: formData.priority,
+          budget: Number(formData.budget),
+          actualCost: Number(formData.actualCost),
+          requirements: requirementsArray,
+          notes: formData.notes
+        });
+        toast({ title: "Acara berhasil diperbarui" });
+      } else {
+        await eventsService.create({
+          eventName: formData.eventName,
+          eventType: formData.eventType,
+          description: formData.description,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          location: formData.location,
+          organizer: formData.organizer,
+          maxParticipants: Number(formData.maxParticipants),
+          currentParticipants: Number(formData.currentParticipants),
+          status: formData.status,
+          priority: formData.priority,
+          budget: Number(formData.budget),
+          actualCost: Number(formData.actualCost),
+          requirements: requirementsArray,
+          notes: formData.notes
+        });
+        toast({ title: "Acara berhasil dibuat" });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan acara",
+        variant: "destructive"
+      });
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (event: Event) => {
@@ -200,9 +197,17 @@ const EventsCalendar = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setEvents(events.filter(event => event.id !== id));
-    toast({ title: "Acara berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await eventsService.delete(id);
+      toast({ title: "Acara berhasil dihapus" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus acara",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -548,7 +553,20 @@ const EventsCalendar = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {events.map((event) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : events.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Belum ada data acara
+                  </TableCell>
+                </TableRow>
+              ) : (
+                events.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell className="font-medium">
                     <div>
@@ -574,8 +592,8 @@ const EventsCalendar = () => {
                     <div className="text-sm">
                       {event.currentParticipants}/{event.maxParticipants}
                       <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
-                        <div 
-                          className="bg-blue-600 h-1 rounded-full" 
+                        <div
+                          className="bg-blue-600 h-1 rounded-full"
                           style={{ width: `${(event.currentParticipants / event.maxParticipants) * 100}%` }}
                         ></div>
                       </div>
@@ -596,13 +614,13 @@ const EventsCalendar = () => {
                       <Button variant="outline" size="sm" onClick={() => handleEdit(event)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(event.id)}>
+                      <Button variant="outline" size="sm" onClick={() => event.id && handleDelete(event.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>

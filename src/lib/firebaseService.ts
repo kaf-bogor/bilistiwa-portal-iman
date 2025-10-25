@@ -289,6 +289,7 @@ export const teacherWelfareService = new FirebaseService('teacherWelfare');
 export const documentsService = new FirebaseService('documents');
 export const eventsService = new FirebaseService('events');
 export const usersService = new FirebaseService('users');
+export const menuItemsService = new FirebaseService('menuItems');
 
 // Export the main service class for custom collections
 export default FirebaseService;

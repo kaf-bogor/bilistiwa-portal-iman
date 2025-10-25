@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { FileText, Plus, Edit, Trash2, Eye, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { documentsService } from "@/lib/firebaseService";
+import { Timestamp } from "firebase/firestore";
 
 interface Document {
-  id: string;
+  id?: string;
   documentName: string;
   documentType: "Legal" | "Financial" | "Academic" | "Administrative" | "Policy" | "Report";
   category: "Waqf Documents" | "Financial Reports" | "Academic Records" | "Legal Contracts" | "Policies" | "Certificates";
@@ -25,46 +27,24 @@ interface Document {
   tags: string[];
   version: string;
   notes: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 const DocumentManagement = () => {
   const { toast } = useToast();
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: "1",
-      documentName: "Waqf Land Certificate - Main Campus",
-      documentType: "Legal",
-      category: "Waqf Documents",
-      description: "Official land certificate for the main campus waqf property",
-      uploadDate: "2024-01-15",
-      lastModified: "2024-01-15",
-      fileSize: "2.5 MB",
-      fileFormat: "PDF",
-      uploadedBy: "Ahmad Suharto",
-      status: "Active",
-      accessLevel: "Confidential",
-      tags: ["waqf", "legal", "property", "certificate"],
-      version: "1.0",
-      notes: "Original certificate from BPN (National Land Agency)"
-    },
-    {
-      id: "2",
-      documentName: "Monthly Financial Report - December 2023",
-      documentType: "Financial",
-      category: "Financial Reports",
-      description: "Comprehensive financial report for December 2023",
-      uploadDate: "2024-01-05",
-      lastModified: "2024-01-10",
-      fileSize: "1.8 MB",
-      fileFormat: "PDF",
-      uploadedBy: "Siti Aminah",
-      status: "Active",
-      accessLevel: "Internal",
-      tags: ["financial", "report", "monthly", "december"],
-      version: "2.0",
-      notes: "Revised version with additional expense breakdown"
-    }
-  ]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch documents from Firestore on component mount
+  useEffect(() => {
+    const unsubscribe = documentsService.onSnapshot((docs) => {
+      setDocuments(docs as Document[]);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
@@ -120,36 +100,59 @@ const DocumentManagement = () => {
     setEditingDocument(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t);
-    
-    if (editingDocument) {
-      setDocuments(documents.map(document => 
-        document.id === editingDocument.id 
-          ? { 
-              ...document, 
-              ...formData, 
-              tags: tagsArray,
-              lastModified: new Date().toISOString().split('T')[0]
-            }
-          : document
-      ));
-      toast({ title: "Dokumen berhasil diperbarui" });
-    } else {
-      const newDocument: Document = {
-        id: Date.now().toString(),
-        ...formData,
-        tags: tagsArray,
-        lastModified: formData.uploadDate
-      };
-      setDocuments([...documents, newDocument]);
-      toast({ title: "Dokumen berhasil ditambahkan" });
+
+    try {
+      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t);
+
+      if (editingDocument && editingDocument.id) {
+        await documentsService.update(editingDocument.id, {
+          documentName: formData.documentName,
+          documentType: formData.documentType,
+          category: formData.category,
+          description: formData.description,
+          uploadDate: formData.uploadDate,
+          lastModified: new Date().toISOString().split('T')[0],
+          fileSize: formData.fileSize,
+          fileFormat: formData.fileFormat,
+          uploadedBy: formData.uploadedBy,
+          status: formData.status,
+          accessLevel: formData.accessLevel,
+          tags: tagsArray,
+          version: formData.version,
+          notes: formData.notes
+        });
+        toast({ title: "Dokumen berhasil diperbarui" });
+      } else {
+        await documentsService.create({
+          documentName: formData.documentName,
+          documentType: formData.documentType,
+          category: formData.category,
+          description: formData.description,
+          uploadDate: formData.uploadDate,
+          lastModified: formData.uploadDate,
+          fileSize: formData.fileSize,
+          fileFormat: formData.fileFormat,
+          uploadedBy: formData.uploadedBy,
+          status: formData.status,
+          accessLevel: formData.accessLevel,
+          tags: tagsArray,
+          version: formData.version,
+          notes: formData.notes
+        });
+        toast({ title: "Dokumen berhasil ditambahkan" });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan dokumen",
+        variant: "destructive"
+      });
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (document: Document) => {
@@ -173,9 +176,17 @@ const DocumentManagement = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setDocuments(documents.filter(document => document.id !== id));
-    toast({ title: "Dokumen berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await documentsService.delete(id);
+      toast({ title: "Dokumen berhasil dihapus" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus dokumen",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -473,7 +484,20 @@ const DocumentManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {documents.map((document) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : documents.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Belum ada data dokumen
+                  </TableCell>
+                </TableRow>
+              ) : (
+                documents.map((document) => (
                 <TableRow key={document.id}>
                   <TableCell className="font-medium">
                     <div>
@@ -506,13 +530,13 @@ const DocumentManagement = () => {
                       <Button variant="outline" size="sm">
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(document.id)}>
+                      <Button variant="outline" size="sm" onClick={() => document.id && handleDelete(document.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Users2, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { teacherWelfareService } from "@/lib/firebaseService";
+import { Timestamp } from "firebase/firestore";
 
 interface TeacherWelfare {
-  id: string;
+  id?: string;
   teacherName: string;
   employeeId: string;
   position: "Head Teacher" | "Senior Teacher" | "Junior Teacher" | "Assistant Teacher" | "Substitute Teacher";
@@ -25,46 +27,24 @@ interface TeacherWelfare {
   address: string;
   emergencyContact: string;
   notes: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 const TeacherWelfare = () => {
   const { toast } = useToast();
-  const [teachers, setTeachers] = useState<TeacherWelfare[]>([
-    {
-      id: "1",
-      teacherName: "Ustadz Ahmad Hidayat",
-      employeeId: "EMP001",
-      position: "Head Teacher",
-      department: "Islamic Studies",
-      baseSalary: 8000000,
-      allowances: 2000000,
-      benefits: ["Health Insurance", "Transportation", "Meal Allowance"],
-      status: "Active",
-      joinDate: "2022-01-15",
-      phoneNumber: "081234567890",
-      email: "ahmad.hidayat@kuttab.edu",
-      address: "Jl. Raya Bogor No. 123, Bogor",
-      emergencyContact: "Siti Hidayat - 081987654321",
-      notes: "Excellent performance in Islamic studies curriculum"
-    },
-    {
-      id: "2",
-      teacherName: "Ustadzah Fatimah Zahra",
-      employeeId: "EMP002",
-      position: "Senior Teacher",
-      department: "Arabic Language",
-      baseSalary: 6500000,
-      allowances: 1500000,
-      benefits: ["Health Insurance", "Transportation"],
-      status: "Active",
-      joinDate: "2022-06-01",
-      phoneNumber: "081345678901",
-      email: "fatimah.zahra@kuttab.edu",
-      address: "Jl. Pajajaran No. 456, Bogor",
-      emergencyContact: "Muhammad Zahra - 081876543210",
-      notes: "Specialized in Arabic language and literature"
-    }
-  ]);
+  const [teachers, setTeachers] = useState<TeacherWelfare[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch teachers from Firestore on component mount
+  useEffect(() => {
+    const unsubscribe = teacherWelfareService.onSnapshot((documents) => {
+      setTeachers(documents as TeacherWelfare[]);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<TeacherWelfare | null>(null);
@@ -120,38 +100,59 @@ const TeacherWelfare = () => {
     setEditingTeacher(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const benefitsArray = formData.benefits.split(',').map(b => b.trim()).filter(b => b);
-    
-    if (editingTeacher) {
-      setTeachers(teachers.map(teacher => 
-        teacher.id === editingTeacher.id 
-          ? { 
-              ...teacher, 
-              ...formData, 
-              baseSalary: Number(formData.baseSalary),
-              allowances: Number(formData.allowances),
-              benefits: benefitsArray
-            }
-          : teacher
-      ));
-      toast({ title: "Data kesejahteraan guru berhasil diperbarui" });
-    } else {
-      const newTeacher: TeacherWelfare = {
-        id: Date.now().toString(),
-        ...formData,
-        baseSalary: Number(formData.baseSalary),
-        allowances: Number(formData.allowances),
-        benefits: benefitsArray
-      };
-      setTeachers([...teachers, newTeacher]);
-      toast({ title: "Data kesejahteraan guru berhasil dibuat" });
+
+    try {
+      const benefitsArray = formData.benefits.split(',').map(b => b.trim()).filter(b => b);
+
+      if (editingTeacher && editingTeacher.id) {
+        await teacherWelfareService.update(editingTeacher.id, {
+          teacherName: formData.teacherName,
+          employeeId: formData.employeeId,
+          position: formData.position,
+          department: formData.department,
+          baseSalary: Number(formData.baseSalary),
+          allowances: Number(formData.allowances),
+          benefits: benefitsArray,
+          status: formData.status,
+          joinDate: formData.joinDate,
+          phoneNumber: formData.phoneNumber,
+          email: formData.email,
+          address: formData.address,
+          emergencyContact: formData.emergencyContact,
+          notes: formData.notes
+        });
+        toast({ title: "Data kesejahteraan guru berhasil diperbarui" });
+      } else {
+        await teacherWelfareService.create({
+          teacherName: formData.teacherName,
+          employeeId: formData.employeeId,
+          position: formData.position,
+          department: formData.department,
+          baseSalary: Number(formData.baseSalary),
+          allowances: Number(formData.allowances),
+          benefits: benefitsArray,
+          status: formData.status,
+          joinDate: formData.joinDate,
+          phoneNumber: formData.phoneNumber,
+          email: formData.email,
+          address: formData.address,
+          emergencyContact: formData.emergencyContact,
+          notes: formData.notes
+        });
+        toast({ title: "Data kesejahteraan guru berhasil dibuat" });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan data guru",
+        variant: "destructive"
+      });
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (teacher: TeacherWelfare) => {
@@ -175,9 +176,17 @@ const TeacherWelfare = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setTeachers(teachers.filter(teacher => teacher.id !== id));
-    toast({ title: "Data kesejahteraan guru berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await teacherWelfareService.delete(id);
+      toast({ title: "Data kesejahteraan guru berhasil dihapus" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus data guru",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -460,7 +469,20 @@ const TeacherWelfare = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teachers.map((teacher) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : teachers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    Belum ada data guru
+                  </TableCell>
+                </TableRow>
+              ) : (
+                teachers.map((teacher) => (
                 <TableRow key={teacher.id}>
                   <TableCell className="font-medium">{teacher.teacherName}</TableCell>
                   <TableCell>
@@ -480,13 +502,13 @@ const TeacherWelfare = () => {
                       <Button variant="outline" size="sm" onClick={() => handleEdit(teacher)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(teacher.id)}>
+                      <Button variant="outline" size="sm" onClick={() => teacher.id && handleDelete(teacher.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>
